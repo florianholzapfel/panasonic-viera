@@ -1,6 +1,7 @@
 """
 Command line tool to remote control your Panasonic Viera TV.
 """
+import argparse
 import code
 import shlex
 import sys
@@ -160,7 +161,16 @@ class RemoteControl(object):
 
 def main():
     """ Handle command line execution. """
-    remote_control = RemoteControl(panasonic_viera.RemoteControl('192.168.178.35'))
+    parser = argparse.ArgumentParser(prog='panasonic_viera',
+                    description='Remote control a Panasonic Viera TV.')
+    parser.add_argument('host', metavar='host', type=str,
+                    help='Address of the Panasonic Viera TV')
+    parser.add_argument('port', metavar='port', type=int, nargs='?',
+                    default=panasonic_viera.DEFAULT_PORT,
+                    help='Port of the Panasonic Viera TV. Defaults to {}.'.format(panasonic_viera.DEFAULT_PORT))
+    args = parser.parse_args()
+
+    remote_control = RemoteControl(panasonic_viera.RemoteControl(args.host, args.host))
     runner = CommandRunner()
     runner.command('get_volume', remote_control.get_volume)
     runner.command('set_volume', remote_control.set_volume)
