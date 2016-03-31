@@ -170,7 +170,7 @@ def main():
                     help='Port of the Panasonic Viera TV. Defaults to {}.'.format(panasonic_viera.DEFAULT_PORT))
     args = parser.parse_args()
 
-    remote_control = RemoteControl(panasonic_viera.RemoteControl(args.host, args.host))
+    remote_control = RemoteControl(panasonic_viera.RemoteControl(args.host, args.port))
     runner = CommandRunner()
     runner.command('get_volume', remote_control.get_volume)
     runner.command('set_volume', remote_control.set_volume)
