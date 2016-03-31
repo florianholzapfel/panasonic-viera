@@ -6,6 +6,7 @@ import code
 import shlex
 import sys
 import socket
+import logging
 from sys import stderr
 
 import panasonic_viera
@@ -168,7 +169,13 @@ def main():
     parser.add_argument('port', metavar='port', type=int, nargs='?',
                     default=panasonic_viera.DEFAULT_PORT,
                     help='Port of the Panasonic Viera TV. Defaults to {}.'.format(panasonic_viera.DEFAULT_PORT))
+    parser.add_argument('--verbose', dest='verbose', action='store_const',
+                    const=True, default=False,
+                    help='debug output')
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     remote_control = RemoteControl(panasonic_viera.RemoteControl(args.host, args.port))
     runner = CommandRunner()
