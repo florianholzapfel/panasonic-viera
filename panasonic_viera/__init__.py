@@ -170,6 +170,8 @@ class RemoteControl:
 
     def send_key(self, key):
         """Send a key command to the TV."""
+        if isinstance(key, Keys):
+            key = key.value
         params = '<X_KeyEvent>{}</X_KeyEvent>'.format(key)
         self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                           'X_SendKey', params)
