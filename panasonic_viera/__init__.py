@@ -129,7 +129,7 @@ class RemoteControl:
         _LOGGER.debug("Sending to %s:\n%s\n%s", url, headers, soap_body)
         req = Request(url, soap_body, headers)
 
-        res = urlopen(req, timeout=2).read()
+        res = urlopen(req, timeout=5).read()
         _LOGGER.debug("Response: %s", res)
         return res
 
