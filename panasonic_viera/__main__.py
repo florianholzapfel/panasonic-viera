@@ -92,6 +92,12 @@ class RemoteControl(object):
     def __init__(self, remote_control):
         self._remote_control = remote_control
 
+    def open_webpage(self, url):
+        try:
+            self._remote_control.open_webpage(url)
+        except (socket.timeout, TimeoutError, OSError):
+            print('TV is switched off.')
+
     def get_volume(self):
         try:
             vol = self._remote_control.get_volume()
@@ -179,6 +185,7 @@ def main():
 
     remote_control = RemoteControl(panasonic_viera.RemoteControl(args.host, args.port))
     runner = CommandRunner()
+    runner.command('open_webpage', remote_control.open_webpage)
     runner.command('get_volume', remote_control.get_volume)
     runner.command('set_volume', remote_control.set_volume)
     runner.command('get_mute', remote_control.get_mute)
