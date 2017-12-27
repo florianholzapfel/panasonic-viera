@@ -1,6 +1,7 @@
 """Module to interact with your Panasonic Viera TV."""
 from enum import Enum
 import logging
+import random
 import socket
 import xml.etree.ElementTree as ET
 from urllib.request import urlopen, Request
@@ -102,19 +103,19 @@ class RemoteControl:
         self._host = host
         self._port = port
 
-    def soap_request(self, url, urn, action, params):
+    def soap_request(self, url, urn, action, params, body_elem="m"):
         """Send a SOAP request to the TV."""
         soap_body = (
             '<?xml version="1.0" encoding="utf-8"?>'
             '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"'
             ' s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
             '<s:Body>'
-            '<m:{action} xmlns:m="urn:{urn}">'
+            '<{body_elem}:{action} xmlns:{body_elem}="urn:{urn}">'
             '{params}'
-            '</m:{action}>'
+            '</{body_elem}:{action}>'
             '</s:Body>'
             '</s:Envelope>'
-        ).format(action=action, urn=urn, params=params).encode('utf-8')
+        ).format(action=action, urn=urn, params=params, body_elem=body_elem).encode('utf-8')
 
         headers = {
             'Host': '{}:{}'.format(self._host, self._port),
@@ -128,9 +129,47 @@ class RemoteControl:
         _LOGGER.debug("Sending to %s:\n%s\n%s", url, headers, soap_body)
         req = Request(url, soap_body, headers)
 
-        res = urlopen(req, timeout=2).read()
+        res = urlopen(req, timeout=5).read()
         _LOGGER.debug("Response: %s", res)
         return res
+
+    def open_webpage(self, url):
+        """Launch Web Browser and open url"""
+        params = ('<X_AppType>vc_app</X_AppType>'
+                 '<X_LaunchKeyword>resource_id={resource_id}</X_LaunchKeyword>'
+                 ).format(resource_id=1063)
+        res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
+                                'X_LaunchApp', params, body_elem="s")
+        root = ET.fromstring(res)
+        el_sessionId = root.find('.//X_SessionId')
+
+        #setup a server socket where URL will be served
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        localip = socket.gethostbyname(socket.gethostname())
+        localport = random.randint(1025,65535)
+        server_socket.bind((localip, localport))
+        server_socket.listen(1)
+        _LOGGER.debug("Listening on {}:{}".format(localip,localport))
+ 
+        params = ('<X_AppType>vc_app</X_AppType>'
+                 '<X_SessionId>{sessionId}</X_SessionId>'
+                 '<X_ConnectKeyword>panasonic-viera 0.2</X_ConnectKeyword>'
+                 '<X_ConnectAddr>{localip}:{localport}</X_ConnectAddr>'
+                 ).format(sessionId=el_sessionId.text, localip=localip, localport=localport)
+
+        res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
+                                'X_ConnectApp', params, body_elem="s")
+
+        sockfd, addr = server_socket.accept()
+        _LOGGER.debug("Client (%s, %s) connected" % addr)
+        packet = bytearray([0xf4, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, len(url)])
+        packet.extend(map(ord, url))
+        packet.append(0x00)
+        sockfd.send(packet)
+        sockfd.close()
+
+        server_socket.close()
 
     def get_volume(self):
         """Return the current volume level."""
