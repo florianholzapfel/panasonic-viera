@@ -133,6 +133,24 @@ class RemoteControl:
         _LOGGER.debug("Response: %s", res)
         return res
 
+    # Taken from https://github.com/home-assistant/ file: home-assistant/homeassistant/util/__init__.py
+    def _get_local_ip(self):
+        """Try to determine the local IP address of the machine."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+            # Use Google Public DNS server to determine own IP
+            sock.connect(('8.8.8.8', 80))
+
+            return sock.getsockname()[0]
+        except socket.error:
+            try:
+                return socket.gethostbyname(socket.gethostname())
+            except socket.gaierror:
+                return '127.0.0.1'
+        finally:
+            sock.close()
+
     def open_webpage(self, url):
         """Launch Web Browser and open url"""
         params = ('<X_AppType>vc_app</X_AppType>'
@@ -146,7 +164,7 @@ class RemoteControl:
         #setup a server socket where URL will be served
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        localip = socket.gethostbyname(socket.gethostname())
+        localip = self._get_local_ip() 
         localport = random.randint(1025,65535)
         server_socket.bind((localip, localport))
         server_socket.listen(1)
