@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name = 'panasonic_viera',
     packages = ['panasonic_viera'],
-    version = '0.3',
+    version = '0.3.1',
     description = 'Library to control Panasonic Viera TVs',
     author = 'Florian Holzapfel',
     author_email = 'flo.holzapfel@gmail.com',
