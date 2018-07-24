@@ -30,6 +30,7 @@ class Keys(Enum):
     input_key = 'NRC_CHG_INPUT-ONOFF'
     network = 'NRC_CHG_NETWORK-ONOFF'
     ch_up = 'NRC_CH_UP-ONOFF'
+    num_0 = 'NRC_D0-ONOFF'
     num_1 = 'NRC_D1-ONOFF'
     num_2 = 'NRC_D2-ONOFF'
     num_3 = 'NRC_D3-ONOFF'
