@@ -144,7 +144,6 @@ class RemoteControl(object):
         except (socket.timeout, TimeoutError, OSError):
             print('TV is switched off.')
 
-
     def volume_up(self):
         try:
             self._remote_control.volume_up()
