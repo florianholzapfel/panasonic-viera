@@ -238,6 +238,10 @@ class RemoteControl:
         """Turn off media player."""
         self.send_key(Keys.power)
 
+    def turn_on(self):
+        """Turn on media player."""
+        self.send_key(Keys.power)
+
     def volume_up(self):
         """Volume up the media player."""
         self.send_key(Keys.volume_up)
