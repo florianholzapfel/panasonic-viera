@@ -201,6 +201,8 @@ def main():
     runner.command('volume_up', remote_control.volume_up)
     runner.command('volume_down', remote_control.volume_down)
     runner.command('mute_volume', remote_control.mute_volume)
+    runner.command('turn_off', remote_control.turn_off)
+    runner.command('turn_on', remote_control.turn_on)
     runner.command('send_key', remote_control.send_key)
     return Console(runner).run()
 
