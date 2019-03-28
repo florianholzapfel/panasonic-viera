@@ -4,6 +4,8 @@
 
 Pincode and encryption support has been added for newer TV models circa 2019. For example, the "FZ" Panasonic models. These new models require pincode authentication and communication is now encapsulated in AES-CBC-128 encryption with HMAC-SHA-256. See issue https://github.com/florianholzapfel/panasonic-viera/issues/9
 
+*Please note that these new changes have not yet been tested thoroughly, use at your own risk.*
+
 ## Usage
 
 ### Code
