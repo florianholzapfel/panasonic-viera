@@ -8,7 +8,6 @@ import base64
 import binascii
 import struct
 import hmac, hashlib
-import time
 from Crypto.Cipher import AES
 try:
     from urllib.request import urlopen, Request, HTTPError
