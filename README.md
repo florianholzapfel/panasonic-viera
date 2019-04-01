@@ -12,32 +12,6 @@ Pincode and encryption support has been added for newer TV models circa 2019. Fo
 
 #### Examples
 
-##### Request a pin code and get credentials
-
-```python
-import panasonic_viera
-rc = panasonic_viera.RemoteControl("<HOST>")
-rc.request_pin_code()
-pin = raw_input("Enter the displayed pin code: ")
-rc.authorize_pin_code(pincode=pin)
-# Display credentials (application ID and encryption key)
-print rc._app_id
-print rc._enc_key
-# We can now start communicating with our TV
-# Send EPG key
-rc.send_key(panasonic_viera.Keys.epg)
-```
-
-##### Use saved credentials
-
-```python
-import panasonic_viera
-rc = panasonic_viera.RemoteControl("<HOST>", app_id="BSkeeKuuwakd9Q==", encryption_key="EarvNQodKYlj5zTEIhZoXQ==")
-# We can now start communicating with our TV
-# Send EPG key
-rc.send_key(panasonic_viera.Keys.epg)
-```
-
 ##### Increase Volume By 1
 
 ```python
