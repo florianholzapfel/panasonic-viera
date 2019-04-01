@@ -8,7 +8,6 @@ import base64
 import binascii
 import struct
 import hmac, hashlib
-import time
 from Crypto.Cipher import AES
 try:
     from urllib.request import urlopen, Request, HTTPError
@@ -111,27 +110,6 @@ class Keys(Enum):
     volume_up = 'NRC_VOLUP-ONOFF'
     vtools = 'NRC_VTOOLS-ONOFF'
     yellow = 'NRC_YELLOW-ONOFF'
-
-class Apps(Enum):
-    """Contains several app product IDs."""
-    netflix = '0010000200000001'
-    youtube = '0070000200180001'
-    shoutcast = '0070000400000001'
-    calendar = '0387878700150020'
-    #browser = '1063'
-    browser = '0077777700160002'
-    amazonprime = '0010000100180001'
-    iplayer = '0020000A00000010'
-    bbciplayer = '0020000A00000010'
-    itv = '0387878700000124'
-    all4 = '0387878700000125'
-    demand5 = '0020009300000001'
-    recordedtv = '0387878700000013'
-    multiwindow = '0387878700000050'
-    bbcnews = '0020000A00000006'
-    bbcsport = '0020000A00000007'
-    weather = '0070000C00000001'
-    developer = '0077777777777778'
     
 class SOAPError(Exception):
     pass
@@ -179,12 +157,9 @@ class RemoteControl:
     def soap_request(self, url, urn, action, params, body_elem="m"):
         """Send a SOAP request to the TV."""
         
-        is_encrypted = False
-        
         # Encapsulate URN_REMOTE_CONTROL command in an X_EncryptedCommand if we're using encryption
         if urn == URN_REMOTE_CONTROL and action != "X_GetEncryptSessionId":
             if None not in [self._session_key, self._session_iv, self._session_hmac_key, self._session_id, self._session_seq_num]:
-                is_encrypted = True
                 self._session_seq_num += 1
                 encrypted_command = (
                     '<X_SessionId>{session_id}</X_SessionId>'
@@ -239,15 +214,6 @@ class RemoteControl:
                 self._session_seq_num -= 1
             raise Exception(e) # Pass to the next handler
         _LOGGER.debug("Response: %s", res)
-        
-        if is_encrypted:
-            root = ET.fromstring(res)
-            enc_result = root.find('.//X_EncResult').text
-            enc_result_decrypted = self._decrypt_soap_payload(
-                    enc_result, self._session_key, self._session_iv, self._session_hmac_key
-            ) 
-            res = enc_result_decrypted
-        
         return res
     
     def _derive_session_keys(self):
@@ -434,7 +400,6 @@ class RemoteControl:
                  ).format(resource_id=1063)
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_LaunchApp', params, body_elem="s")
-        print res
         root = ET.fromstring(res)
         el_sessionId = root.find('.//X_SessionId')
 
@@ -465,20 +430,6 @@ class RemoteControl:
         sockfd.close()
 
         server_socket.close()
-    
-    def get_apps(self):
-        """Return the list of apps on the TV"""
-        res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
-                                'X_GetAppList', None)
-        
-        return res
-    
-    def get_vector_info(self):
-        """Return the vector info on the TV"""
-        res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
-                                'X_GetVectorInfo', None)
-        
-        return res
 
     def get_volume(self):
         """Return the current volume level."""
@@ -523,18 +474,6 @@ class RemoteControl:
         params = '<X_KeyEvent>{}</X_KeyEvent>'.format(key)
         self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                           'X_SendKey', params)
-    
-    def launch_app(self, app):
-        """Launch an app."""
-        if isinstance(app, Apps):
-            app = app.value
-        params = '<X_AppType>vc_app</X_AppType><X_LaunchKeyword>'
-        if len(app) != 16:
-            params = params + 'resource_id={}</X_LaunchKeyword>'.format(app)
-        else:
-            params = params + 'product_id={}</X_LaunchKeyword>'.format(app)
-        self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
-                          'X_LaunchApp', params)
 
     def turn_off(self):
         """Turn off media player."""
