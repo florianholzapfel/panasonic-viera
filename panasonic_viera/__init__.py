@@ -8,6 +8,7 @@ import base64
 import binascii
 import struct
 import hmac, hashlib
+import time
 from Crypto.Cipher import AES
 try:
     from urllib.request import urlopen, Request, HTTPError
@@ -37,6 +38,7 @@ class Keys(Enum):
     toggle_3d = 'NRC_3D-ONOFF'
     apps = 'NRC_APPS-ONOFF'
     aspect = 'NRC_ASPECT-ONOFF'
+    back = 'NRC_RETURN-ONOFF'
     blue = 'NRC_BLUE-ONOFF'
     cancel = 'NRC_CANCEL-ONOFF'
     cc = 'NRC_CC-ONOFF'
@@ -60,6 +62,7 @@ class Keys(Enum):
     down = 'NRC_DOWN-ONOFF'
     enter = 'NRC_ENTER-ONOFF'
     epg = 'NRC_EPG-ONOFF'
+    exit = 'NRC_CANCEL-ONOFF'
     ez_sync = 'NRC_EZ_SYNC-ONOFF'
     favorite = 'NRC_FAVORITE-ONOFF'
     fast_forward = 'NRC_FF-ONOFF'
@@ -433,7 +436,6 @@ class RemoteControl:
                  ).format(resource_id=1063)
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_LaunchApp', params, body_elem="s")
-        print res
         root = ET.fromstring(res)
         el_sessionId = root.find('.//X_SessionId')
 

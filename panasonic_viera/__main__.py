@@ -1,6 +1,7 @@
 """
 Command line tool to remote control your Panasonic Viera TV.
 """
+from __future__ import print_function
 import argparse
 import code
 import shlex
@@ -8,7 +9,6 @@ import sys
 import socket
 import logging
 from sys import stderr
-
 import panasonic_viera
 
 
