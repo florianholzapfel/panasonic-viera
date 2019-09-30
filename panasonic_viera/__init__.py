@@ -184,7 +184,7 @@ class RemoteControl:
         is_encrypted = False
         
         # Encapsulate URN_REMOTE_CONTROL command in an X_EncryptedCommand if we're using encryption
-        if urn == URN_REMOTE_CONTROL and action != "X_GetEncryptSessionId":
+        if urn == URN_REMOTE_CONTROL and action not in ["X_GetEncryptSessionId", "X_DisplayPinCode"]:
             if None not in [self._session_key, self._session_iv, self._session_hmac_key, self._session_id, self._session_seq_num]:
                 is_encrypted = True
                 self._session_seq_num += 1
