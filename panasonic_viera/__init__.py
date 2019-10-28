@@ -226,7 +226,7 @@ class RemoteControl:
         headers = {
             'Host': '{}:{}'.format(self._host, self._port),
             'Content-Length': len(soap_body),
-            'Content-Type': 'text/xml; charset=utf-8"',
+            'Content-Type': 'text/xml; charset=utf-8',
             'SOAPAction': '"urn:{}#{}"'.format(urn, action),
         }
 
