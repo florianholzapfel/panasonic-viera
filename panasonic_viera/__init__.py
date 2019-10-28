@@ -236,7 +236,7 @@ class RemoteControl:
         req = Request(url, soap_body, headers)
         try:
             res = urlopen(req, timeout=5).read()
-        except HTTPError, e:
+        except HTTPError as e:
             if self._session_seq_num is not None:
                 self._session_seq_num -= 1
             raise Exception(e) # Pass to the next handler
@@ -308,7 +308,7 @@ class RemoteControl:
         params = '<X_DeviceName>' + name + '</X_DeviceName>'
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_DisplayPinCode', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
@@ -347,7 +347,7 @@ class RemoteControl:
         params = '<X_AuthInfo>' + self._encrypt_soap_payload("<X_PinCode>" + pincode + "</X_PinCode>", key, iv, hmac_key) + '</X_AuthInfo>'
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_RequestAuth', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
@@ -389,7 +389,7 @@ class RemoteControl:
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                     'X_GetEncryptSessionId', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
