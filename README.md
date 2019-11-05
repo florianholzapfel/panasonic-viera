@@ -1,5 +1,7 @@
 # panasonic-viera
 
+[![PyPI version fury.io](https://badge.fury.io/py/panasonic-viera.svg)](https://pypi.org/project/panasonic-viera/)
+
 ## UPDATE (2019-03-28)
 
 Pincode and encryption support has been added for newer TV models circa 2019. For example, the "FZ" Panasonic models. These new models require pincode authentication and communication is now encapsulated in AES-CBC-128 encryption with HMAC-SHA-256. See issue https://github.com/florianholzapfel/panasonic-viera/issues/9
