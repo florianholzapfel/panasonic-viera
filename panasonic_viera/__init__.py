@@ -253,7 +253,7 @@ class RemoteControl:
         return res
     
     def _derive_session_keys(self):
-        iv = base64.b64decode(self._enc_key)
+        iv = base64.b64decode(self._enc_key).decode("ascii")
         
         self._session_iv = iv
         
@@ -293,13 +293,13 @@ class RemoteControl:
         # Compute HMAC-SHA-256
         sig = hmac.new(hmac_key, ciphertext, hashlib.sha256).digest()
         # Concat HMAC with AES-encrypted payload
-        return base64.b64encode(ciphertext + sig)
+        return base64.b64encode(ciphertext + sig).decode("ascii")
     
     def _decrypt_soap_payload(self, data, key, iv, hmac_key):
         # Initialize AES-CBC with key and IV
         aes = AES.new(key, AES.MODE_CBC, iv)
         # Decrypt
-        decrypted = aes.decrypt(base64.b64decode(data))
+        decrypted = aes.decrypt(base64.b64decode(data).decode("utf-8"))
         # Unpad and return
         return decrypted[16:].split("\0")[0]
     
@@ -316,7 +316,7 @@ class RemoteControl:
                         raise SOAPError(child.text)
                 return
         root = ET.fromstring(res)
-        self._challenge = base64.b64decode(root.find('.//X_ChallengeKey').text)
+        self._challenge = base64.b64decode(root.find('.//X_ChallengeKey').text).decode("ascii")
     
     def authorize_pin_code(self, pincode):
         # Second, let's encrypt the pin code using the challenge key and send it back to authenticate
