@@ -11,4 +11,5 @@ setup(
     download_url = 'https://github.com/florianholzapfel/panasonic-viera/archive/master.zip',
     keywords = ['panasonic', 'viera'],
     classifiers = [],
+    install_requires = ['pycryptodome'],
 )
