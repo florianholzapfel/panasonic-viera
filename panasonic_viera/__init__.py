@@ -197,7 +197,7 @@ class RemoteControl:
                     '</{body_elem}:{action}>'
                     '</X_OriginalCommand>'
                 ).format(session_id=self._session_id, seq_num='%08d' % self._session_seq_num, action=action, urn=urn, 
-                    params=params, body_elem="u").encode('utf-8')
+                    params=params, body_elem="u")
                 
                 encrypted_command = self._encrypt_soap_payload(encrypted_command, self._session_key, self._session_iv,
                     self._session_hmac_key)
@@ -236,10 +236,10 @@ class RemoteControl:
         req = Request(url, soap_body, headers)
         try:
             res = urlopen(req, timeout=5).read()
-        except HTTPError, e:
+        except HTTPError as e:
             if self._session_seq_num is not None:
                 self._session_seq_num -= 1
-            raise Exception(e) # Pass to the next handler
+            raise e # Pass to the next handler
         _LOGGER.debug("Response: %s", res)
         
         if is_encrypted:
@@ -253,12 +253,12 @@ class RemoteControl:
         return res
     
     def _derive_session_keys(self):
-        iv = base64.b64decode(self._enc_key).decode("ascii")
+        iv = bytearray(base64.b64decode(self._enc_key))
         
         self._session_iv = iv
         
         # Get character codes from IV bytes
-        iv_vals = [ord(c) for c in iv]
+        iv_vals = [c for c in iv]
         
         # Initialise key character codes array
         key_vals = [0] * 16
@@ -273,7 +273,8 @@ class RemoteControl:
             i += 4
         
         # Convert our key character codes to bytes
-        self._session_key = ''.join(chr(c) for c in key_vals)
+        #self._session_key = ''.join(chr(c) for c in key_vals)
+        self._session_key = bytearray(c for c in key_vals)
         
         # HMAC key for comms is just the IV repeated twice
         self._session_hmac_key = iv * 2
@@ -282,24 +283,35 @@ class RemoteControl:
         # The encrypted payload must begin with a 16-byte header (12 random bytes, and 4 bytes for the payload length in big endian)
         # Note: the server does not appear to ever send back valid payload lengths in bytes 13-16, so I would assume these can also 
         # be randomized by the client, but we'll set them anyway to be safe.
-        payload = ''.join(chr(random.randint(0,255)) for i in range(12))
+        payload = bytearray(random.randint(0,255) for i in range(12))
         payload += struct.pack(">I", len(data))
-        payload += data
+        payload += data.encode("latin-1")
+        
+        # For compatibility with both Python 2.x and 3.x, flattening types to 'str' or 'bytes'
+        iv = iv.decode("latin-1").encode("latin-1")
+        key = key.decode("latin-1").encode("latin-1")
+        payload = pad(payload.decode("latin-1")).encode("latin-1")
+        hmac_key = hmac_key.decode("latin-1").encode("latin-1")
         
         # Initialize AES-CBC with key and IV
         aes = AES.new(key, AES.MODE_CBC, iv)
         # Encrypt with zero-padding
-        ciphertext = aes.encrypt(pad(payload))
+        ciphertext = aes.encrypt(payload)
         # Compute HMAC-SHA-256
         sig = hmac.new(hmac_key, ciphertext, hashlib.sha256).digest()
         # Concat HMAC with AES-encrypted payload
-        return base64.b64encode(ciphertext + sig).decode("ascii")
+        return base64.b64encode(ciphertext + sig).decode("latin-1")
     
     def _decrypt_soap_payload(self, data, key, iv, hmac_key):
+        
+        # For compatibility with both Python 2.x and 3.x, flattening types to 'str' or 'bytes'
+        key = key.decode("latin-1").encode("latin-1")
+        iv = iv.decode("latin-1").encode("latin-1")
+        
         # Initialize AES-CBC with key and IV
         aes = AES.new(key, AES.MODE_CBC, iv)
         # Decrypt
-        decrypted = aes.decrypt(base64.b64decode(data).decode("utf-8"))
+        decrypted = aes.decrypt(base64.b64decode(data)).decode("latin-1")
         # Unpad and return
         return decrypted[16:].split("\0")[0]
     
@@ -308,7 +320,7 @@ class RemoteControl:
         params = '<X_DeviceName>' + name + '</X_DeviceName>'
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_DisplayPinCode', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
@@ -316,38 +328,38 @@ class RemoteControl:
                         raise SOAPError(child.text)
                 return
         root = ET.fromstring(res)
-        self._challenge = base64.b64decode(root.find('.//X_ChallengeKey').text).decode("ascii")
+        self._challenge = bytearray(base64.b64decode(root.find('.//X_ChallengeKey').text))
     
     def authorize_pin_code(self, pincode):
         # Second, let's encrypt the pin code using the challenge key and send it back to authenticate
         
         # Derive key from IV
         iv = self._challenge
-        key = ""
+        key = bytearray([0] * 16)
         i = 0
         while i < 16:
-            key += chr(~ord(iv[i + 3]) & 0xFF)
-            key += chr(~ord(iv[i + 2]) & 0xFF)
-            key += chr(~ord(iv[i + 1]) & 0xFF)
-            key += chr(~ord(iv[i]) & 0xFF)
+            key[i] = ~iv[i + 3] & 0xFF
+            key[i + 1] = ~iv[i + 2] & 0xFF
+            key[i + 2] = ~iv[i + 1] & 0xFF
+            key[i + 3] = ~iv[i] & 0xFF
             i += 4
         
         # Derive HMAC key from IV & HMAC key mask (taken from libtvconnect.so)
         hmac_key_mask_vals = [0x15,0xC9,0x5A,0xC2,0xB0,0x8A,0xA7,0xEB,0x4E,0x22,0x8F,0x81,0x1E,0x34,0xD0,0x4F,0xA5,0x4B,0xA7,0xDC,0xAC,0x98,0x79,0xFA,0x8A,0xCD,0xA3,0xFC,0x24,0x4F,0x38,0x54]
-        hmac_key = ""
+        hmac_key = bytearray([0] * 32)
         i = 0
         while i < 32:
-            hmac_key += chr(hmac_key_mask_vals[i] ^ ord(iv[(i + 2) & 0xF]))
-            hmac_key += chr(hmac_key_mask_vals[i + 1] ^ ord(iv[(i + 3) & 0xF]))
-            hmac_key += chr(hmac_key_mask_vals[i + 2] ^ ord(iv[i & 0xF]))
-            hmac_key += chr(hmac_key_mask_vals[i + 3] ^ ord(iv[(i + 1) & 0xF]))
+            hmac_key[i] = hmac_key_mask_vals[i] ^ iv[(i + 2) & 0xF]
+            hmac_key[i + 1] = hmac_key_mask_vals[i + 1] ^ iv[(i + 3) & 0xF]
+            hmac_key[i + 2] = hmac_key_mask_vals[i + 2] ^ iv[i & 0xF]
+            hmac_key[i + 3] = hmac_key_mask_vals[i + 3] ^ iv[(i + 1) & 0xF]
             i += 4
         
         # Encrypt X_PinCode argument and send it within an X_AuthInfo tag
         params = '<X_AuthInfo>' + self._encrypt_soap_payload("<X_PinCode>" + pincode + "</X_PinCode>", key, iv, hmac_key) + '</X_AuthInfo>'
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_RequestAuth', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
@@ -389,7 +401,7 @@ class RemoteControl:
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                     'X_GetEncryptSessionId', params, body_elem="u")
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 500:
                 xml = ET.fromstring(e.fp.read())
                 for child in xml.iter():
