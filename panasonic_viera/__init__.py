@@ -584,3 +584,15 @@ class RemoteControl:
     def media_previous_track(self):
         """Send the previous track command."""
         self.send_key(Keys.rewind)
+
+    @property
+    def type(self):
+        return self._type
+    
+    @property
+    def app_id(self):
+        return self._app_id
+    
+    @property
+    def enc_key(self):
+        return self._enc_key
