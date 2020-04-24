@@ -3,7 +3,8 @@ from enum import Enum
 import logging
 import random
 import socket
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as etree
+import xmltodict
 import base64
 import binascii
 import struct
@@ -20,7 +21,9 @@ _LOGGER = logging.getLogger(__name__)
 URN_RENDERING_CONTROL = 'schemas-upnp-org:service:RenderingControl:1'
 URN_REMOTE_CONTROL = 'panasonic-com:service:p00NetworkControl:1'
 
+URL_CONTROL_DMR_DDD = 'dmr/ddd.xml'
 URL_CONTROL_NRC_DEF = 'nrc/sdd_0.xml'
+
 URL_CONTROL_DMR = 'dmr/control_0'
 URL_CONTROL_NRC = 'nrc/control_0'
 
@@ -169,7 +172,7 @@ class RemoteControl:
             
             _LOGGER.debug("Determining TV type\n")
             res = urlopen(url, timeout=5).read()
-            root = ET.fromstring(res)
+            root = etree.fromstring(res)
             for child in root:
                 if child.tag.endswith("actionList"):
                     for subchild in child.iter():
@@ -243,7 +246,7 @@ class RemoteControl:
         _LOGGER.debug("Response: %s", res)
         
         if is_encrypted:
-            root = ET.fromstring(res)
+            root = etree.fromstring(res)
             enc_result = root.find('.//X_EncResult').text
             enc_result_decrypted = self._decrypt_soap_payload(
                     enc_result, self._session_key, self._session_iv, self._session_hmac_key
@@ -322,12 +325,12 @@ class RemoteControl:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_DisplayPinCode', params, body_elem="u")
         except HTTPError as e:
             if e.code == 500:
-                xml = ET.fromstring(e.fp.read())
+                xml = etree.fromstring(e.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         self._challenge = bytearray(base64.b64decode(root.find('.//X_ChallengeKey').text))
     
     def authorize_pin_code(self, pincode):
@@ -361,7 +364,7 @@ class RemoteControl:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_RequestAuth', params, body_elem="u")
         except HTTPError as e:
             if e.code == 500:
-                xml = ET.fromstring(e.fp.read())
+                xml = etree.fromstring(e.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorCode") and child.text == "600":
                         raise SOAPError("Invalid PIN Code!")
@@ -370,9 +373,9 @@ class RemoteControl:
                 return
         
         # Parse and decrypt X_AuthResult
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         auth_result = root.find('.//X_AuthResult').text
-        auth_result_decrypted = ET.fromstring("<X_Data>" + self._decrypt_soap_payload(auth_result, key, iv, hmac_key) + "</X_Data>")
+        auth_result_decrypted = etree.fromstring("<X_Data>" + self._decrypt_soap_payload(auth_result, key, iv, hmac_key) + "</X_Data>")
         
         # Set session application ID and encryption key
         self._app_id = auth_result_decrypted.find(".//X_ApplicationId").text
@@ -403,15 +406,15 @@ class RemoteControl:
                                     'X_GetEncryptSessionId', params, body_elem="u")
         except HTTPError as e:
             if e.code == 500:
-                xml = ET.fromstring(e.fp.read())
+                xml = etree.fromstring(e.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
         
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         enc_result = root.find('.//X_EncResult').text
-        enc_result_decrypted = ET.fromstring(
+        enc_result_decrypted = etree.fromstring(
                 "<X_Data>" + 
                 self._decrypt_soap_payload(
                         enc_result, self._session_key, self._session_iv, self._session_hmac_key
@@ -441,6 +444,15 @@ class RemoteControl:
         finally:
             sock.close()
 
+    def get_device_info(self):
+        """Retrieve information from the TV"""
+        url = 'http://{}:{}/{}'.format(self._host, self._port,  URL_CONTROL_DMR_DDD)
+            
+        res = urlopen(url, timeout=5).read()
+        device_info = xmltodict.parse(res)['root']['device']
+
+        return device_info
+    
     def open_webpage(self, url):
         """Launch Web Browser and open url"""
         params = ('<X_AppType>vc_app</X_AppType>'
@@ -448,7 +460,7 @@ class RemoteControl:
                  ).format(resource_id=1063)
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_LaunchApp', params, body_elem="s")
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         el_sessionId = root.find('.//X_SessionId')
 
         #setup a server socket where URL will be served
@@ -498,7 +510,7 @@ class RemoteControl:
         params = '<InstanceID>0</InstanceID><Channel>Master</Channel>'
         res = self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                                 'GetVolume', params)
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         el_volume = root.find('.//CurrentVolume')
         return int(el_volume.text)
 
@@ -517,7 +529,7 @@ class RemoteControl:
         params = '<InstanceID>0</InstanceID><Channel>Master</Channel>'
         res = self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                                 'GetMute', params)
-        root = ET.fromstring(res)
+        root = etree.fromstring(res)
         el_mute = root.find('.//CurrentMute')
         return el_mute.text != '0'
 
@@ -599,3 +611,9 @@ class RemoteControl:
     def enc_key(self):
         """Return encryption key."""
         return self._enc_key
+
+def etree_to_dict(t):
+    d = {t.tag : map(etree_to_dict, t.iterchildren())}
+    d.update(('@' + k, v) for k, v in t.attrib.iteritems())
+    d['text'] = t.text
+    return d
