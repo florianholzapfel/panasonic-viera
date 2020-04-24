@@ -330,6 +330,7 @@ class RemoteControl:
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
+            raise e # Pass to the next handler
         root = etree.fromstring(res)
         self._challenge = bytearray(base64.b64decode(root.find('.//X_ChallengeKey').text))
     
@@ -371,6 +372,7 @@ class RemoteControl:
                     elif child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
+            raise e # Pass to the next handler
         
         # Parse and decrypt X_AuthResult
         root = etree.fromstring(res)
@@ -411,6 +413,7 @@ class RemoteControl:
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
+            raise e # Pass to the next handler
         
         root = etree.fromstring(res)
         enc_result = root.find('.//X_EncResult').text
