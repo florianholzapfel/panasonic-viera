@@ -26,8 +26,8 @@ pin = raw_input("Enter the displayed pin code: ")
 # Authorize the pin code with the TV
 rc.authorize_pin_code(pincode=pin)
 # Display credentials (application ID and encryption key)
-print rc._app_id
-print rc._enc_key
+print rc.app_id
+print rc.enc_key
 # We can now start communicating with our TV
 # Send EPG key
 rc.send_key(panasonic_viera.Keys.epg)
