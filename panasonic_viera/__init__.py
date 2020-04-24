@@ -587,12 +587,15 @@ class RemoteControl:
 
     @property
     def type(self):
+        """Return TV type."""
         return self._type
     
     @property
     def app_id(self):
+        """Return application ID."""
         return self._app_id
     
     @property
     def enc_key(self):
+        """Return encryption key."""
         return self._enc_key
