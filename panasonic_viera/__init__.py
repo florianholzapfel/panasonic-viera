@@ -11,17 +11,20 @@ import struct
 import hmac, hashlib
 import time
 from Crypto.Cipher import AES
+import asyncio
+import aiohttp.web
+from http import HTTPStatus
 try:
-    from urllib.request import urlopen, Request, HTTPError
+    from urllib.request import urlopen, Request, HTTPError, build_opener, HTTPHandler
 except:
-    from urllib2 import urlopen, Request, HTTPError
+    from urllib2 import urlopen, Request, HTTPError, build_opener, HTTPHandler
 
 _LOGGER = logging.getLogger(__name__)
 
 URN_RENDERING_CONTROL = 'schemas-upnp-org:service:RenderingControl:1'
 URN_REMOTE_CONTROL = 'panasonic-com:service:p00NetworkControl:1'
 
-URL_CONTROL_DMR_DDD = 'dmr/ddd.xml'
+URL_CONTROL_NRC_DDD = 'nrc/ddd.xml'
 URL_CONTROL_NRC_DEF = 'nrc/sdd_0.xml'
 
 URL_CONTROL_DMR = 'dmr/control_0'
@@ -147,17 +150,26 @@ class EncryptionRequired(Exception):
 class RemoteControl:
     """This class represents a Panasonic Viera TV Remote Control."""
 
-    def __init__(self, host, port=DEFAULT_PORT, app_id=None, encryption_key=None):
+    def __init__(self, host, port=DEFAULT_PORT, app_id=None, encryption_key=None, listen_host=None,
+        listen_port=DEFAULT_PORT):
         """Initialise the remote control."""
         self._host = host
         self._port = port
         self._app_id = app_id
         self._enc_key = encryption_key
+        self._listen_host = listen_host
+        self._listen_port = listen_port
         self._session_key = None
         self._session_iv = None
         self._session_id = None
         self._session_seq_num = None
         self._session_hmac_key = None
+
+        self._service_to_sid = {}
+        self._sid_to_service = {}
+
+        self._aiohttp_server = None
+        self._server = None
         
         if self._app_id is None or self._enc_key is None:
             self._type = TV_TYPE_NONENCRYPTED
@@ -446,10 +458,157 @@ class RemoteControl:
                 return '127.0.0.1'
         finally:
             sock.close()
+    
+    def _do_custom_request(
+        self, method, url, headers=None, timeout=10
+    ):
+        opener = build_opener(HTTPHandler)
+        req = Request(url, headers=headers, method=method)
+        res = opener.open(req, timeout=timeout)
+
+        status = res.status
+        header = dict(res.info())
+
+        return status, header
+
+    def upnp_service_subscribe(self, service, timeout=10):
+        """Subscribe to a UPnP service."""
+        headers = {
+            "NT": "upnp:event",
+            "TIMEOUT": "Second-" + str(timeout),
+            "HOST": f"{self._host}:{self._port}",
+            "CALLBACK": f"<http://{self._listen_host}:{self._listen_port}/notify>",
+        }
+
+        status, headers = self._do_custom_request("SUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+
+        if "SID" in headers and headers["SID"]:
+            self._service_to_sid[service] = headers["SID"]
+            self._sid_to_service[headers["SID"]] = service
+
+        return status, headers
+
+    def upnp_service_resubscribe(self, service, timeout=10):
+        """Renew subscription to a UPnP service."""
+        if service not in self._service_to_sid:
+            _LOGGER.error("Couldn't renew subscription of service %s", service)
+            return
+
+        headers = {
+            "HOST": f"{self._host}:{self._port}",
+            "SID": self._service_to_sid[service],
+            "TIMEOUT": "Second-" + str(timeout),
+        }
+        
+        status, headers = self._do_custom_request("SUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+
+        if "SID" in headers and headers["SID"]:
+            self._service_to_sid[service] = headers["SID"]
+            self._sid_to_service[headers["SID"]] = service
+
+        return status, headers
+
+    def upnp_service_unsubscribe(self, service, timeout=10):
+        """Unsubscribe from a UPnP service."""
+        if service not in self._service_to_sid:
+            _LOGGER.debug("Couldn't unsubscribe from service %s", service)
+            return
+        
+        headers = {
+            "HOST": f"{self._host}:{self._port}",
+            "SID": self._service_to_sid[service],
+            "TIMEOUT": "Second-" + str(timeout),
+        }
+
+        status, headers = self._do_custom_request("UNSUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+
+        self._service_to_sid.pop(service)
+
+        return status, headers
+
+    async def async_start_server(self):
+        """Start the HTTP server."""
+        self._listen_host = self._listen_host or self._get_local_ip()
+
+        _LOGGER.debug("Creating server at %s:%d", self._listen_host, self._listen_port)
+
+        self._aiohttp_server = aiohttp.web.Server(self._handle_request)
+        loop = asyncio.get_event_loop()
+        try:
+            self._server = await loop.create_server(
+                self._aiohttp_server, self._listen_host, self._listen_port
+            )
+        except OSError as error:
+            _LOGGER.error(
+                "Failed to create HTTP server at %s:%d: %s",
+                self._listen_host,
+                self._listen_port,
+                error,
+            )
+
+    async def async_stop_server(self, timeout=10):
+        """Stop the HTTP server."""
+        _LOGGER.debug("Stopping server")
+
+        if self._aiohttp_server:
+            await self._aiohttp_server.shutdown(timeout)
+
+        if self._server:
+            self._server.close()
+
+    async def _handle_request(self, request):
+        """Handle incoming requests."""
+        if request.method != "NOTIFY":
+            _LOGGER.debug("Request received is not of method notify")
+            return aiohttp.web.Response(status=405)
+
+        headers = request.headers
+        body = await request.text()
+
+        if "NT" not in headers or "NTS" not in headers:
+            _LOGGER_TRAFFIC.debug("Sending response: %s", HTTPStatus.BAD_REQUEST)
+            return HTTPStatus.BAD_REQUEST
+
+        if (
+            headers["NT"] != "upnp:event"
+            or headers["NTS"] != "upnp:propchange"
+            or "SID" not in headers
+        ):
+            _LOGGER_TRAFFIC.debug(
+                "Sending response: %s", HTTPStatus.PRECONDITION_FAILED
+            )
+            return HTTPStatus.PRECONDITION_FAILED
+
+        sid = headers["SID"]
+        service = None
+        if sid in self._sid_to_service:
+            service = self._sid_to_service[sid]
+
+        body = body.strip().strip("\u0000")
+        root = xmltodict.parse(body)
+        properties = root["e:propertyset"]["e:property"]
+
+        if "LastChange" in properties:
+            last_change = properties["LastChange"]
+            properties = xmltodict.parse(last_change)["Event"]["InstanceID"]
+
+        _LOGGER.debug(
+            "Received valid request from service %s. Handling properties:",
+            service,
+        )
+        _LOGGER.debug(properties)
+
+        await self.on_event(service, properties)
+
+        return HTTPStatus.OK
+    
+    async def on_event(self, service, properties):
+        """Parse the received data. This method can be overridden by the user"""
+        _LOGGER.info("Please override the on_event method to handle the received data.")
 
     def get_device_info(self):
         """Retrieve information from the TV"""
-        url = 'http://{}:{}/{}'.format(self._host, self._port,  URL_CONTROL_DMR_DDD)
+        url = 'http://{}:{}/{}'.format(self._host, self._port,  URL_CONTROL_NRC_DDD)
             
         res = urlopen(url, timeout=5).read()
         device_info = xmltodict.parse(res)['root']['device']
