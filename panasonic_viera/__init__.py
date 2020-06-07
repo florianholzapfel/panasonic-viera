@@ -14,6 +14,7 @@ from Crypto.Cipher import AES
 import asyncio
 import aiohttp.web
 from http import HTTPStatus
+import re
 try:
     from urllib.request import urlopen, Request, HTTPError, build_opener, HTTPHandler
 except:
@@ -658,7 +659,13 @@ class RemoteControl:
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_GetAppList', None)
         
-        return res
+        apps = res.split("vc_app")[1:]
+        app_list = {}
+        for app in apps:
+            prod_id = re.search('(?<=product_id\=)(.*?)(?=&apos;)', app).group(0)
+            name = re.search('(?<='+prod_id+'&apos;)(.*?)(?=&apos;)', app).group(0)
+            app_list[name] = prod_id
+        return app_list
     
     def get_vector_info(self):
         """Return the vector info on the TV"""
