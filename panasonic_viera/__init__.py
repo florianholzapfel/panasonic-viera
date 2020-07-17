@@ -567,7 +567,7 @@ class RemoteControl:
         body = await request.text()
 
         if "NT" not in headers or "NTS" not in headers:
-            _LOGGER_TRAFFIC.debug("Sending response: %s", HTTPStatus.BAD_REQUEST)
+            _LOGGER.debug("Sending response: %s", HTTPStatus.BAD_REQUEST)
             return HTTPStatus.BAD_REQUEST
 
         if (
@@ -575,7 +575,7 @@ class RemoteControl:
             or headers["NTS"] != "upnp:propchange"
             or "SID" not in headers
         ):
-            _LOGGER_TRAFFIC.debug(
+            _LOGGER.debug(
                 "Sending response: %s", HTTPStatus.PRECONDITION_FAILED
             )
             return HTTPStatus.PRECONDITION_FAILED
