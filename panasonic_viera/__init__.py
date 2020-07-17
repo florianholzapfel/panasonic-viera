@@ -25,6 +25,8 @@ _LOGGER = logging.getLogger(__name__)
 URN_RENDERING_CONTROL = 'schemas-upnp-org:service:RenderingControl:1'
 URN_REMOTE_CONTROL = 'panasonic-com:service:p00NetworkControl:1'
 
+URL_TEMPLATE = 'http://{}:{}/{}'
+
 URL_CONTROL_NRC_DDD = 'nrc/ddd.xml'
 URL_CONTROL_NRC_DEF = 'nrc/sdd_0.xml'
 
@@ -127,7 +129,6 @@ class Apps(Enum):
     youtube = '0070000200180001'
     shoutcast = '0070000400000001'
     calendar = '0387878700150020'
-    #browser = '1063'
     browser = '0077777700160002'
     amazonprime = '0010000100180001'
     iplayer = '0020000A00000010'
@@ -181,7 +182,7 @@ class RemoteControl:
         
         # Determine if the TV uses encryption or not
         if self._type == TV_TYPE_NONENCRYPTED:
-            url = 'http://{}:{}/{}'.format(self._host, self._port,  URL_CONTROL_NRC_DEF)
+            url = URL_TEMPLATE.format(self._host, self._port,  URL_CONTROL_NRC_DEF)
             
             _LOGGER.debug("Determining TV type\n")
             res = urlopen(url, timeout=5).read()
@@ -189,9 +190,8 @@ class RemoteControl:
             for child in root:
                 if child.tag.endswith("actionList"):
                     for subchild in child.iter():
-                        if subchild.tag.endswith("name"):
-                            if subchild.text == "X_GetEncryptSessionId":
-                                self._type = TV_TYPE_ENCRYPTED
+                        if subchild.tag.endswith("name") and subchild.text == "X_GetEncryptSessionId":
+                            self._type = TV_TYPE_ENCRYPTED
             _LOGGER.debug("Determined TV type is %s\n", "encrypted" if self._type == TV_TYPE_ENCRYPTED else "non-encrypted")
 
     def soap_request(self, url, urn, action, params, body_elem="m"):
@@ -246,7 +246,7 @@ class RemoteControl:
             'SOAPAction': '"urn:{}#{}"'.format(urn, action),
         }
 
-        url = 'http://{}:{}/{}'.format(self._host, self._port, url)
+        url = URL_TEMPLATE.format(self._host, self._port, url)
 
         _LOGGER.debug("Sending to %s:\n%s\n%s", url, headers, soap_body)
         req = Request(url, soap_body, headers)
@@ -299,7 +299,7 @@ class RemoteControl:
         # The encrypted payload must begin with a 16-byte header (12 random bytes, and 4 bytes for the payload length in big endian)
         # Note: the server does not appear to ever send back valid payload lengths in bytes 13-16, so I would assume these can also 
         # be randomized by the client, but we'll set them anyway to be safe.
-        payload = bytearray(random.randint(0,255) for i in range(12))
+        payload = bytearray(random.randint(0,255) for _ in range(12))
         payload += struct.pack(">I", len(data))
         payload += data.encode("latin-1")
         
@@ -609,7 +609,7 @@ class RemoteControl:
 
     def get_device_info(self):
         """Retrieve information from the TV"""
-        url = 'http://{}:{}/{}'.format(self._host, self._port,  URL_CONTROL_NRC_DDD)
+        url = URL_TEMPLATE.format(self._host, self._port,  URL_CONTROL_NRC_DDD)
             
         res = urlopen(url, timeout=5).read()
         device_info = xmltodict.parse(res)['root']['device']
@@ -641,7 +641,7 @@ class RemoteControl:
                  '<X_ConnectAddr>{localip}:{localport}</X_ConnectAddr>'
                  ).format(sessionId=el_sessionId.text, localip=localip, localport=localport)
 
-        res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
+        self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_ConnectApp', params, body_elem="s")
 
         sockfd, addr = server_socket.accept()

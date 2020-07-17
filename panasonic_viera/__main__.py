@@ -11,6 +11,8 @@ import logging
 from sys import stderr
 import panasonic_viera
 
+MSG_TV_SWITCHED_OFF = 'TV is switched off.'
+
 
 class CommandRunner(object):
     "Runs defined commands."
@@ -96,21 +98,21 @@ class RemoteControl(object):
         try:
             self._remote_control.open_webpage(url)
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def get_volume(self):
         try:
             vol = self._remote_control.get_volume()
             print('Volume is currently set to {}'.format(vol))
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def set_volume(self, vol):
         try:
             self._remote_control.set_volume(vol)
             print('Successfully set volume to {}'.format(vol))
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def get_mute(self):
         try:
@@ -120,7 +122,7 @@ class RemoteControl(object):
             else:
                 print('TV is not muted.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def set_mute(self, mute):
         try:
@@ -128,42 +130,42 @@ class RemoteControl(object):
             self._remote_control.set_mute(mute)
             print('Successfully set mute to {}'.format(mute))
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def turn_off(self):
         try:
             self._remote_control.turn_off()
             print('Successfully turned TV off.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def turn_on(self):
         try:
             self._remote_control.turn_on()
             print('Successfully turned TV on.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def volume_up(self):
         try:
             self._remote_control.volume_up()
             print('Successfully turned volume up.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def volume_down(self):
         try:
             self._remote_control.volume_down()
             print('Successfully turned volume down.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def mute_volume(self):
         try:
             self._remote_control.mute_volume()
             print('Successfully muted volume.')
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
     def send_key(self, key):
         try:
@@ -171,7 +173,7 @@ class RemoteControl(object):
             self._remote_control.send_key(key)
             print('Successfully sent key {}.'.format(key))
         except (socket.timeout, TimeoutError, OSError):
-            print('TV is switched off.')
+            print(MSG_TV_SWITCHED_OFF)
 
 def main():
     """ Handle command line execution. """
