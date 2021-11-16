@@ -1,6 +1,8 @@
 # panasonic-viera
 
-[![PyPI version fury.io](https://badge.fury.io/py/panasonic-viera.svg)](https://pypi.org/project/panasonic-viera/)
+[![Pipeline Status](https://github.com/florianholzapfel/panasonic-viera/actions/workflows/pylint.yml/badge.svg)](https://github.com/florianholzapfel/panasonic-viera/actions/workflows/pylint.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=florianholzapfel_panasonic-viera&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=florianholzapfel_panasonic-viera)
+[![PyPI version](https://badge.fury.io/py/panasonic-viera.svg)](https://badge.fury.io/py/panasonic-viera)
 
 ## UPDATE (2019-03-28)
 
