@@ -3,21 +3,20 @@ from enum import Enum
 import logging
 import random
 import socket
-import xml.etree.ElementTree as etree
-import xmltodict
 import base64
-import binascii
 import struct
-import hmac, hashlib
-import time
-from Crypto.Cipher import AES
-import asyncio
-import aiohttp.web
+import hmac
+import hashlib
 from http import HTTPStatus
 import re
+import asyncio
+from xml.etree import ElementTree
+import aiohttp.web
+import xmltodict
+from Crypto.Cipher import AES
 try:
     from urllib.request import urlopen, Request, HTTPError, build_opener, HTTPHandler
-except:
+except ImportError:
     from urllib2 import urlopen, Request, HTTPError, build_opener, HTTPHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,111 +42,111 @@ pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(0)
 
 class Keys(Enum):
     """Contains all known keys."""
-    thirty_second_skip = 'NRC_30S_SKIP-ONOFF'
-    toggle_3d = 'NRC_3D-ONOFF'
-    apps = 'NRC_APPS-ONOFF'
-    aspect = 'NRC_ASPECT-ONOFF'
-    back = 'NRC_RETURN-ONOFF'
-    blue = 'NRC_BLUE-ONOFF'
-    cancel = 'NRC_CANCEL-ONOFF'
-    cc = 'NRC_CC-ONOFF'
-    chat_mode = 'NRC_CHAT_MODE-ONOFF'
-    ch_down = 'NRC_CH_DOWN-ONOFF'
-    input_key = 'NRC_CHG_INPUT-ONOFF'
-    network = 'NRC_CHG_NETWORK-ONOFF'
-    ch_up = 'NRC_CH_UP-ONOFF'
-    num_0 = 'NRC_D0-ONOFF'
-    num_1 = 'NRC_D1-ONOFF'
-    num_2 = 'NRC_D2-ONOFF'
-    num_3 = 'NRC_D3-ONOFF'
-    num_4 = 'NRC_D4-ONOFF'
-    num_5 = 'NRC_D5-ONOFF'
-    num_6 = 'NRC_D6-ONOFF'
-    num_7 = 'NRC_D7-ONOFF'
-    num_8 = 'NRC_D8-ONOFF'
-    num_9 = 'NRC_D9-ONOFF'
-    diga_control = 'NRC_DIGA_CTL-ONOFF'
-    display = 'NRC_DISP_MODE-ONOFF'
-    down = 'NRC_DOWN-ONOFF'
-    enter = 'NRC_ENTER-ONOFF'
-    epg = 'NRC_EPG-ONOFF'
-    exit = 'NRC_CANCEL-ONOFF'
-    ez_sync = 'NRC_EZ_SYNC-ONOFF'
-    favorite = 'NRC_FAVORITE-ONOFF'
-    fast_forward = 'NRC_FF-ONOFF'
-    game = 'NRC_GAME-ONOFF'
-    green = 'NRC_GREEN-ONOFF'
-    guide = 'NRC_GUIDE-ONOFF'
-    hold = 'NRC_HOLD-ONOFF'
-    home = 'NRC_HOME-ONOFF'
-    index = 'NRC_INDEX-ONOFF'
-    info = 'NRC_INFO-ONOFF'
-    connect = 'NRC_INTERNET-ONOFF'
-    left = 'NRC_LEFT-ONOFF'
-    menu = 'NRC_MENU-ONOFF'
-    mpx = 'NRC_MPX-ONOFF'
-    mute = 'NRC_MUTE-ONOFF'
-    net_bs = 'NRC_NET_BS-ONOFF'
-    net_cs = 'NRC_NET_CS-ONOFF'
-    net_td = 'NRC_NET_TD-ONOFF'
-    off_timer = 'NRC_OFFTIMER-ONOFF'
-    pause = 'NRC_PAUSE-ONOFF'
-    pictai = 'NRC_PICTAI-ONOFF'
-    play = 'NRC_PLAY-ONOFF'
-    p_nr = 'NRC_P_NR-ONOFF'
-    power = 'NRC_POWER-ONOFF'
-    program = 'NRC_PROG-ONOFF'
-    record = 'NRC_REC-ONOFF'
-    red = 'NRC_RED-ONOFF'
-    return_key = 'NRC_RETURN-ONOFF'
-    rewind = 'NRC_REW-ONOFF'
-    right = 'NRC_RIGHT-ONOFF'
-    r_screen = 'NRC_R_SCREEN-ONOFF'
-    last_view = 'NRC_R_TUNE-ONOFF'
-    sap = 'NRC_SAP-ONOFF'
-    toggle_sd_card = 'NRC_SD_CARD-ONOFF'
-    skip_next = 'NRC_SKIP_NEXT-ONOFF'
-    skip_prev = 'NRC_SKIP_PREV-ONOFF'
-    split = 'NRC_SPLIT-ONOFF'
-    stop = 'NRC_STOP-ONOFF'
-    subtitles = 'NRC_STTL-ONOFF'
-    option = 'NRC_SUBMENU-ONOFF'
-    surround = 'NRC_SURROUND-ONOFF'
-    swap = 'NRC_SWAP-ONOFF'
-    text = 'NRC_TEXT-ONOFF'
-    tv = 'NRC_TV-ONOFF'
-    up = 'NRC_UP-ONOFF'
-    link = 'NRC_VIERA_LINK-ONOFF'
-    volume_down = 'NRC_VOLDOWN-ONOFF'
-    volume_up = 'NRC_VOLUP-ONOFF'
-    vtools = 'NRC_VTOOLS-ONOFF'
-    yellow = 'NRC_YELLOW-ONOFF'
+    THIRTY_SECOND_SKIP = 'NRC_30S_SKIP-ONOFF'
+    TOGGLE_3D = 'NRC_3D-ONOFF'
+    APPS = 'NRC_APPS-ONOFF'
+    ASPECT = 'NRC_ASPECT-ONOFF'
+    BACK = 'NRC_RETURN-ONOFF'
+    BLUE = 'NRC_BLUE-ONOFF'
+    CANCEL = 'NRC_CANCEL-ONOFF'
+    CC = 'NRC_CC-ONOFF'
+    CHAT_MODE = 'NRC_CHAT_MODE-ONOFF'
+    CH_DOWN = 'NRC_CH_DOWN-ONOFF'
+    INPUT_KEY = 'NRC_CHG_INPUT-ONOFF'
+    NETWORK = 'NRC_CHG_NETWORK-ONOFF'
+    CH_UP = 'NRC_CH_UP-ONOFF'
+    NUM_0 = 'NRC_D0-ONOFF'
+    NUM_1 = 'NRC_D1-ONOFF'
+    NUM_2 = 'NRC_D2-ONOFF'
+    NUM_3 = 'NRC_D3-ONOFF'
+    NUM_4 = 'NRC_D4-ONOFF'
+    NUM_5 = 'NRC_D5-ONOFF'
+    NUM_6 = 'NRC_D6-ONOFF'
+    NUM_7 = 'NRC_D7-ONOFF'
+    NUM_8 = 'NRC_D8-ONOFF'
+    NUM_9 = 'NRC_D9-ONOFF'
+    DIGA_CONTROL = 'NRC_DIGA_CTL-ONOFF'
+    DISPLAY = 'NRC_DISP_MODE-ONOFF'
+    DOWN = 'NRC_DOWN-ONOFF'
+    ENTER = 'NRC_ENTER-ONOFF'
+    EPG = 'NRC_EPG-ONOFF'
+    EXIT = 'NRC_CANCEL-ONOFF'
+    EZ_SYNC = 'NRC_EZ_SYNC-ONOFF'
+    FAVORITE = 'NRC_FAVORITE-ONOFF'
+    FAST_FORWARD = 'NRC_FF-ONOFF'
+    GAME = 'NRC_GAME-ONOFF'
+    GREEN = 'NRC_GREEN-ONOFF'
+    GUIDE = 'NRC_GUIDE-ONOFF'
+    HOLD = 'NRC_HOLD-ONOFF'
+    HOME = 'NRC_HOME-ONOFF'
+    INDEX = 'NRC_INDEX-ONOFF'
+    INFO = 'NRC_INFO-ONOFF'
+    CONNECT = 'NRC_INTERNET-ONOFF'
+    LEFT = 'NRC_LEFT-ONOFF'
+    MENU = 'NRC_MENU-ONOFF'
+    MPX = 'NRC_MPX-ONOFF'
+    MUTE = 'NRC_MUTE-ONOFF'
+    NET_BS = 'NRC_NET_BS-ONOFF'
+    NET_CS = 'NRC_NET_CS-ONOFF'
+    NET_TD = 'NRC_NET_TD-ONOFF'
+    OFF_TIMER = 'NRC_OFFTIMER-ONOFF'
+    PAUSE = 'NRC_PAUSE-ONOFF'
+    PICTAI = 'NRC_PICTAI-ONOFF'
+    PLAY = 'NRC_PLAY-ONOFF'
+    P_NR = 'NRC_P_NR-ONOFF'
+    POWER = 'NRC_POWER-ONOFF'
+    PROGRAM = 'NRC_PROG-ONOFF'
+    RECORD = 'NRC_REC-ONOFF'
+    RED = 'NRC_RED-ONOFF'
+    RETURN_KEY = 'NRC_RETURN-ONOFF'
+    REWIND = 'NRC_REW-ONOFF'
+    RIGHT = 'NRC_RIGHT-ONOFF'
+    R_SCREEN = 'NRC_R_SCREEN-ONOFF'
+    LAST_VIEW = 'NRC_R_TUNE-ONOFF'
+    SAP = 'NRC_SAP-ONOFF'
+    TOGGLE_SD_CARD = 'NRC_SD_CARD-ONOFF'
+    SKIP_NEXT = 'NRC_SKIP_NEXT-ONOFF'
+    SKIP_PREV = 'NRC_SKIP_PREV-ONOFF'
+    SPLIT = 'NRC_SPLIT-ONOFF'
+    STOP = 'NRC_STOP-ONOFF'
+    SUBTITLES = 'NRC_STTL-ONOFF'
+    OPTION = 'NRC_SUBMENU-ONOFF'
+    SURROUND = 'NRC_SURROUND-ONOFF'
+    SWAP = 'NRC_SWAP-ONOFF'
+    TEXT = 'NRC_TEXT-ONOFF'
+    TV = 'NRC_TV-ONOFF'
+    UP = 'NRC_UP-ONOFF'
+    LINK = 'NRC_VIERA_LINK-ONOFF'
+    VOLUME_DOWN = 'NRC_VOLDOWN-ONOFF'
+    VOLUME_UP = 'NRC_VOLUP-ONOFF'
+    VTOOLS = 'NRC_VTOOLS-ONOFF'
+    YELLOW = 'NRC_YELLOW-ONOFF'
 
 class Apps(Enum):
     """Contains several app product IDs."""
-    netflix = '0010000200000001'
-    youtube = '0070000200180001'
-    shoutcast = '0070000400000001'
-    calendar = '0387878700150020'
-    browser = '0077777700160002'
-    amazonprime = '0010000100180001'
-    iplayer = '0020000A00000010'
-    bbciplayer = '0020000A00000010'
-    itv = '0387878700000124'
-    all4 = '0387878700000125'
-    demand5 = '0020009300000001'
-    recordedtv = '0387878700000013'
-    multiwindow = '0387878700000050'
-    bbcnews = '0020000A00000006'
-    bbcsport = '0020000A00000007'
-    weather = '0070000C00000001'
-    developer = '0077777777777778'
-    
+    NETFLIX = '0010000200000001'
+    YOUTUBE = '0070000200180001'
+    SHOUTCAST = '0070000400000001'
+    CALENDAR = '0387878700150020'
+    BROWSER = '0077777700160002'
+    AMAZONPRIME = '0010000100180001'
+    IPLAYER = '0020000A00000010'
+    BBCIPLAYER = '0020000A00000010'
+    ITV = '0387878700000124'
+    ALL4 = '0387878700000125'
+    DEMAND5 = '0020009300000001'
+    RECORDEDTV = '0387878700000013'
+    MULTIWINDOW = '0387878700000050'
+    BBCNEWS = '0020000A00000006'
+    BBCSPORT = '0020000A00000007'
+    WEATHER = '0070000C00000001'
+    DEVELOPER = '0077777777777778'
+
 class SOAPError(Exception):
-    pass
+    """This exception is thrown when a SOAP error happens."""
 
 class EncryptionRequired(Exception):
-    pass
+    """This exception is thrown when encryption is required."""
 
 class RemoteControl:
     """This class represents a Panasonic Viera TV Remote Control."""
@@ -172,78 +171,82 @@ class RemoteControl:
 
         self._aiohttp_server = None
         self._server = None
-        
+
         if self._app_id is None or self._enc_key is None:
             self._type = TV_TYPE_NONENCRYPTED
         else:
             self._type = TV_TYPE_ENCRYPTED
             self._derive_session_keys()
             self._request_session_id()
-        
+
         # Determine if the TV uses encryption or not
         if self._type == TV_TYPE_NONENCRYPTED:
             url = URL_TEMPLATE.format(self._host, self._port,  URL_CONTROL_NRC_DEF)
-            
+
             _LOGGER.debug("Determining TV type\n")
             res = urlopen(url, timeout=5).read()
-            root = etree.fromstring(res)
+            root = ElementTree.fromstring(res)
             for child in root:
                 if child.tag.endswith("actionList"):
                     for subchild in child.iter():
                         if subchild.tag.endswith("name") and subchild.text == "X_GetEncryptSessionId":
                             self._type = TV_TYPE_ENCRYPTED
-            _LOGGER.debug("Determined TV type is %s\n", "encrypted" if self._type == TV_TYPE_ENCRYPTED else "non-encrypted")
+            tv_enc_type = "encrypted" if self._type == TV_TYPE_ENCRYPTED else "non-encrypted"
+            _LOGGER.debug("Determined TV type is %s\n", tv_enc_type)
 
     def soap_request(self, url, urn, action, params, body_elem="m"):
         """Send a SOAP request to the TV."""
-        
+
         is_encrypted = False
-        
+
         # Encapsulate URN_REMOTE_CONTROL command in an X_EncryptedCommand if we're using encryption
-        if urn == URN_REMOTE_CONTROL and action not in ["X_GetEncryptSessionId", "X_DisplayPinCode", "X_RequestAuth"]:
-            if None not in [self._session_key, self._session_iv, self._session_hmac_key, self._session_id, self._session_seq_num]:
+        if urn == URN_REMOTE_CONTROL and action not in ["X_GetEncryptSessionId",
+                                                        "X_DisplayPinCode", "X_RequestAuth"]:
+            if None not in [self._session_key, self._session_iv, self._session_hmac_key,
+                            self._session_id, self._session_seq_num]:
                 is_encrypted = True
                 self._session_seq_num += 1
+                body_elem = 'u'
                 encrypted_command = (
-                    '<X_SessionId>{session_id}</X_SessionId>'
-                    '<X_SequenceNumber>{seq_num}</X_SequenceNumber>'
+                    f'<X_SessionId>{self._session_id}</X_SessionId>'
+                    f'<X_SequenceNumber>{self._session_seq_num:08d}</X_SequenceNumber>'
                     '<X_OriginalCommand>'
-                    '<{body_elem}:{action} xmlns:{body_elem}="urn:{urn}">'
-                    '{params}'
-                    '</{body_elem}:{action}>'
+                    f'<{body_elem}:{action} xmlns:{body_elem}="urn:{urn}">'
+                    f'{params}'
+                    f'</{body_elem}:{action}>'
                     '</X_OriginalCommand>'
-                ).format(session_id=self._session_id, seq_num='%08d' % self._session_seq_num, action=action, urn=urn, 
-                    params=params, body_elem="u")
-                
-                encrypted_command = self._encrypt_soap_payload(encrypted_command, self._session_key, self._session_iv,
-                    self._session_hmac_key)
-                
+                )
+
+                encrypted_command = self._encrypt_soap_payload(encrypted_command,
+                                                                self._session_key,
+                                                                self._session_iv,
+                                                                self._session_hmac_key)
+
                 action = 'X_EncryptedCommand'
-                params = ('<X_ApplicationId>{application_id}</X_ApplicationId>'
-                            '<X_EncInfo>{encrypted_command}</X_EncInfo>'
-                            ).format(application_id=self._app_id, encrypted_command=encrypted_command)
+                params = (f'<X_ApplicationId>{self._app_id}</X_ApplicationId>'
+                            f'<X_EncInfo>{encrypted_command}</X_EncInfo>')
                 body_elem = "u"
             elif self._type == TV_TYPE_ENCRYPTED:
                 raise EncryptionRequired("Please refer to the docs for using encryption")
-        
+
         # Construct SOAP request
         soap_body = (
             '<?xml version="1.0" encoding="utf-8"?>'
             '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"'
             ' s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
             '<s:Body>'
-            '<{body_elem}:{action} xmlns:{body_elem}="urn:{urn}">'
-            '{params}'
-            '</{body_elem}:{action}>'
+            f'<{body_elem}:{action} xmlns:{body_elem}="urn:{urn}">'
+            f'{params}'
+            f'</{body_elem}:{action}>'
             '</s:Body>'
             '</s:Envelope>'
-        ).format(action=action, urn=urn, params=params, body_elem=body_elem).encode('utf-8')
+        ).encode('utf-8')
 
         headers = {
-            'Host': '{}:{}'.format(self._host, self._port),
+            'Host': f'{self._host}:{self._port}',
             'Content-Length': len(soap_body),
             'Content-Type': 'text/xml; charset=utf-8',
-            'SOAPAction': '"urn:{}#{}"'.format(urn, action),
+            'SOAPAction': f'"urn:{urn}#{action}"',
         }
 
         url = URL_TEMPLATE.format(self._host, self._port, url)
@@ -252,30 +255,30 @@ class RemoteControl:
         req = Request(url, soap_body, headers)
         try:
             res = urlopen(req, timeout=5).read()
-        except HTTPError as e:
+        except HTTPError as ex:
             if self._session_seq_num is not None:
                 self._session_seq_num -= 1
-            raise e # Pass to the next handler
+            raise ex # Pass to the next handler
         _LOGGER.debug("Response: %s", res)
-        
+
         if is_encrypted:
-            root = etree.fromstring(res)
+            root = ElementTree.fromstring(res)
             enc_result = root.find('.//X_EncResult').text
             enc_result_decrypted = self._decrypt_soap_payload(
                     enc_result, self._session_key, self._session_iv, self._session_hmac_key
-            ) 
+            )
             res = enc_result_decrypted
-        
+
         return res
-    
+
     def _derive_session_keys(self):
-        iv = bytearray(base64.b64decode(self._enc_key))
-        
-        self._session_iv = iv
-        
+        init_vector = bytearray(base64.b64decode(self._enc_key))
+
+        self._session_iv = init_vector
+
         # Get character codes from IV bytes
-        iv_vals = [c for c in iv]
-        
+        iv_vals = [c for c in init_vector]
+
         # Initialise key character codes array
         key_vals = [0] * 16
 
@@ -287,124 +290,137 @@ class RemoteControl:
             key_vals[i + 2] = iv_vals[i]
             key_vals[i + 3] = iv_vals[i + 1]
             i += 4
-        
+
         # Convert our key character codes to bytes
         #self._session_key = ''.join(chr(c) for c in key_vals)
         self._session_key = bytearray(c for c in key_vals)
-        
+
         # HMAC key for comms is just the IV repeated twice
-        self._session_hmac_key = iv * 2
-    
-    def _encrypt_soap_payload(self, data, key, iv, hmac_key):
-        # The encrypted payload must begin with a 16-byte header (12 random bytes, and 4 bytes for the payload length in big endian)
-        # Note: the server does not appear to ever send back valid payload lengths in bytes 13-16, so I would assume these can also 
-        # be randomized by the client, but we'll set them anyway to be safe.
+        self._session_hmac_key = init_vector * 2
+
+    def _encrypt_soap_payload(self, data, key, init_vector, hmac_key):
+        # The encrypted payload must begin with a 16-byte header (12 random bytes, and 4 bytes for
+        # the payload length in big endian)
+        # Note: the server does not appear to ever send back valid payload lengths in bytes 13-16,
+        # so I would assume these can also be randomized by the client, but we'll set them anyway
+        # to be safe.
         payload = bytearray(random.randint(0,255) for _ in range(12))
         payload += struct.pack(">I", len(data))
         payload += data.encode("latin-1")
-        
+
         # For compatibility with both Python 2.x and 3.x, flattening types to 'str' or 'bytes'
-        iv = iv.decode("latin-1").encode("latin-1")
+        init_vector = init_vector.decode("latin-1").encode("latin-1")
         key = key.decode("latin-1").encode("latin-1")
         payload = pad(payload.decode("latin-1")).encode("latin-1")
         hmac_key = hmac_key.decode("latin-1").encode("latin-1")
-        
+
         # Initialize AES-CBC with key and IV
-        aes = AES.new(key, AES.MODE_CBC, iv)
+        aes = AES.new(key, AES.MODE_CBC, init_vector)
         # Encrypt with zero-padding
         ciphertext = aes.encrypt(payload)
         # Compute HMAC-SHA-256
         sig = hmac.new(hmac_key, ciphertext, hashlib.sha256).digest()
         # Concat HMAC with AES-encrypted payload
         return base64.b64encode(ciphertext + sig).decode("latin-1")
-    
-    def _decrypt_soap_payload(self, data, key, iv, hmac_key):
-        
+
+    def _decrypt_soap_payload(self, data, key, init_vector, hmac_key):
+
         # For compatibility with both Python 2.x and 3.x, flattening types to 'str' or 'bytes'
         key = key.decode("latin-1").encode("latin-1")
-        iv = iv.decode("latin-1").encode("latin-1")
-        
+        init_vector = init_vector.decode("latin-1").encode("latin-1")
+
         # Initialize AES-CBC with key and IV
-        aes = AES.new(key, AES.MODE_CBC, iv)
+        aes = AES.new(key, AES.MODE_CBC, init_vector)
         # Decrypt
         decrypted = aes.decrypt(base64.b64decode(data)).decode("latin-1")
         # Unpad and return
         return decrypted[16:].split("\0")[0]
-    
+
     def request_pin_code(self, name='My Remote'):
         # First let's ask for a pin code and get a challenge key back
         params = '<X_DeviceName>' + name + '</X_DeviceName>'
         try:
-            res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_DisplayPinCode', params, body_elem="u")
-        except HTTPError as e:
-            if e.code == 500:
-                xml = etree.fromstring(e.fp.read())
+            res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
+                                    'X_DisplayPinCode', params, body_elem="u")
+        except HTTPError as ex:
+            if ex.code == 500:
+                xml = ElementTree.fromstring(ex.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
-            raise e # Pass to the next handler
-        root = etree.fromstring(res)
+            raise ex # Pass to the next handler
+        root = ElementTree.fromstring(res)
         self._challenge = bytearray(base64.b64decode(root.find('.//X_ChallengeKey').text))
-    
+
     def authorize_pin_code(self, pincode):
-        # Second, let's encrypt the pin code using the challenge key and send it back to authenticate
-        
+        # Second, let's encrypt the pin code using the challenge key and send it back
+        # to authenticate
+
         # Derive key from IV
-        iv = self._challenge
+        init_vector = self._challenge
         key = bytearray([0] * 16)
         i = 0
         while i < 16:
-            key[i] = ~iv[i + 3] & 0xFF
-            key[i + 1] = ~iv[i + 2] & 0xFF
-            key[i + 2] = ~iv[i + 1] & 0xFF
-            key[i + 3] = ~iv[i] & 0xFF
+            key[i] = ~init_vector[i + 3] & 0xFF
+            key[i + 1] = ~init_vector[i + 2] & 0xFF
+            key[i + 2] = ~init_vector[i + 1] & 0xFF
+            key[i + 3] = ~init_vector[i] & 0xFF
             i += 4
-        
+
         # Derive HMAC key from IV & HMAC key mask (taken from libtvconnect.so)
-        hmac_key_mask_vals = [0x15,0xC9,0x5A,0xC2,0xB0,0x8A,0xA7,0xEB,0x4E,0x22,0x8F,0x81,0x1E,0x34,0xD0,0x4F,0xA5,0x4B,0xA7,0xDC,0xAC,0x98,0x79,0xFA,0x8A,0xCD,0xA3,0xFC,0x24,0x4F,0x38,0x54]
+        hmac_key_mask_vals = [
+            0x15,0xC9,0x5A,0xC2,0xB0,0x8A,0xA7,0xEB,0x4E,0x22,0x8F,0x81,0x1E,
+            0x34,0xD0,0x4F,0xA5,0x4B,0xA7,0xDC,0xAC,0x98,0x79,0xFA,0x8A,0xCD,
+            0xA3,0xFC,0x24,0x4F,0x38,0x54
+        ]
         hmac_key = bytearray([0] * 32)
         i = 0
         while i < 32:
-            hmac_key[i] = hmac_key_mask_vals[i] ^ iv[(i + 2) & 0xF]
-            hmac_key[i + 1] = hmac_key_mask_vals[i + 1] ^ iv[(i + 3) & 0xF]
-            hmac_key[i + 2] = hmac_key_mask_vals[i + 2] ^ iv[i & 0xF]
-            hmac_key[i + 3] = hmac_key_mask_vals[i + 3] ^ iv[(i + 1) & 0xF]
+            hmac_key[i] = hmac_key_mask_vals[i] ^ init_vector[(i + 2) & 0xF]
+            hmac_key[i + 1] = hmac_key_mask_vals[i + 1] ^ init_vector[(i + 3) & 0xF]
+            hmac_key[i + 2] = hmac_key_mask_vals[i + 2] ^ init_vector[i & 0xF]
+            hmac_key[i + 3] = hmac_key_mask_vals[i + 3] ^ init_vector[(i + 1) & 0xF]
             i += 4
-        
+
         # Encrypt X_PinCode argument and send it within an X_AuthInfo tag
-        params = '<X_AuthInfo>' + self._encrypt_soap_payload("<X_PinCode>" + pincode + "</X_PinCode>", key, iv, hmac_key) + '</X_AuthInfo>'
+        payload = self._encrypt_soap_payload(f"<X_PinCode>{pincode}</X_PinCode>",
+                                                key, init_vector, hmac_key)
+        params = f'<X_AuthInfo>{payload}</X_AuthInfo>'
         try:
-            res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_RequestAuth', params, body_elem="u")
-        except HTTPError as e:
-            if e.code == 500:
-                xml = etree.fromstring(e.fp.read())
+            res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
+                                    'X_RequestAuth', params, body_elem="u")
+        except HTTPError as ex:
+            if ex.code == 500:
+                xml = ElementTree.fromstring(ex.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorCode") and child.text == "600":
                         raise SOAPError("Invalid PIN Code!")
                     elif child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
-            raise e # Pass to the next handler
-        
+            raise ex # Pass to the next handler
+
         # Parse and decrypt X_AuthResult
-        root = etree.fromstring(res)
+        root = ElementTree.fromstring(res)
         auth_result = root.find('.//X_AuthResult').text
-        auth_result_decrypted = etree.fromstring("<X_Data>" + self._decrypt_soap_payload(auth_result, key, iv, hmac_key) + "</X_Data>")
-        
+        payload = self._decrypt_soap_payload(auth_result, key, init_vector, hmac_key)
+        auth_result_decrypted = ElementTree.fromstring(f"<X_Data>{payload}</X_Data>")
+
         # Set session application ID and encryption key
         self._app_id = auth_result_decrypted.find(".//X_ApplicationId").text
         self._enc_key = auth_result_decrypted.find(".//X_Keyword").text
-        
+
         # Derive AES & HMAC keys from X_Keyword
         self._derive_session_keys()
-        
+
         # Request a session
         self._request_session_id()
-    
+
     def _request_session_id(self):
-        # Thirdly, let's ask for a session. We'll need to use a valid session ID for encrypted NRC commands.
-        
+        # Thirdly, let's ask for a session. We'll need to use a valid session ID for encrypted
+        # NRC commands.
+
         # We need to send an encrypted version of X_ApplicationId
         encinfo = self._encrypt_soap_payload(
                 '<X_ApplicationId>' + self._app_id + '</X_ApplicationId>',
@@ -413,36 +429,37 @@ class RemoteControl:
                 self._session_hmac_key)
 
         # Send the encrypted SOAP request along with plaintext X_ApplicationId
-        params = ('<X_ApplicationId>{application_id}</X_ApplicationId>'
-                 '<X_EncInfo>{enc_info}</X_EncInfo>'
-                 ).format(application_id=self._app_id, enc_info=encinfo)
+        params = (f'<X_ApplicationId>{self._app_id}</X_ApplicationId>'
+                 f'<X_EncInfo>{encinfo}</X_EncInfo>')
         try:
             res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                     'X_GetEncryptSessionId', params, body_elem="u")
-        except HTTPError as e:
-            if e.code == 500:
-                xml = etree.fromstring(e.fp.read())
+        except HTTPError as ex:
+            if ex.code == 500:
+                xml = ElementTree.fromstring(ex.fp.read())
                 for child in xml.iter():
                     if child.tag.endswith("errorDescription"):
                         raise SOAPError(child.text)
                 return
-            raise e # Pass to the next handler
-        
-        root = etree.fromstring(res)
+            raise ex # Pass to the next handler
+
+        root = ElementTree.fromstring(res)
         enc_result = root.find('.//X_EncResult').text
-        enc_result_decrypted = etree.fromstring(
-                "<X_Data>" + 
+        enc_result_decrypted = ElementTree.fromstring(
+                "<X_Data>" +
                 self._decrypt_soap_payload(
                         enc_result, self._session_key, self._session_iv, self._session_hmac_key
-                        ) 
+                        )
                 + "</X_Data>"
                 )
-        
-        # Set session ID and begin sequence number at 1. We have to increment the sequence number upon each successful NRC command.
+
+        # Set session ID and begin sequence number at 1. We have to increment the sequence number
+        # upon each successful NRC command.
         self._session_id = enc_result_decrypted.find('.//X_SessionId').text
         self._session_seq_num = 1
 
-    # Taken from https://github.com/home-assistant/ file: home-assistant/homeassistant/util/__init__.py
+    # Taken from https://github.com/home-assistant/ file: home-assistant/homeassistant/util
+    # /__init__.py
     def _get_local_ip(self):
         """Try to determine the local IP address of the machine."""
         try:
@@ -459,7 +476,7 @@ class RemoteControl:
                 return '127.0.0.1'
         finally:
             sock.close()
-    
+
     def _do_custom_request(
         self, method, url, headers=None, timeout=10
     ):
@@ -481,7 +498,9 @@ class RemoteControl:
             "CALLBACK": f"<http://{self._listen_host}:{self._listen_port}/notify>",
         }
 
-        status, headers = self._do_custom_request("SUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+        status, headers = self._do_custom_request("SUBSCRIBE",
+                                                f"http://{self._host}:{self._port}/{service}",
+                                                headers=headers, timeout=timeout)
 
         if "SID" in headers and headers["SID"]:
             self._service_to_sid[service] = headers["SID"]
@@ -500,8 +519,10 @@ class RemoteControl:
             "SID": self._service_to_sid[service],
             "TIMEOUT": "Second-" + str(timeout),
         }
-        
-        status, headers = self._do_custom_request("SUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+
+        status, headers = self._do_custom_request("SUBSCRIBE",
+                                                f"http://{self._host}:{self._port}/{service}",
+                                                headers=headers, timeout=timeout)
 
         if "SID" in headers and headers["SID"]:
             self._service_to_sid[service] = headers["SID"]
@@ -514,14 +535,16 @@ class RemoteControl:
         if service not in self._service_to_sid:
             _LOGGER.debug("Couldn't unsubscribe from service %s", service)
             return
-        
+
         headers = {
             "HOST": f"{self._host}:{self._port}",
             "SID": self._service_to_sid[service],
             "TIMEOUT": "Second-" + str(timeout),
         }
 
-        status, headers = self._do_custom_request("UNSUBSCRIBE", f"http://{self._host}:{self._port}/{service}", headers=headers, timeout=timeout)
+        status, headers = self._do_custom_request("UNSUBSCRIBE",
+                                                f"http://{self._host}:{self._port}/{service}",
+                                                headers=headers, timeout=timeout)
 
         self._service_to_sid.pop(service)
 
@@ -602,47 +625,47 @@ class RemoteControl:
         await self.on_event(service, properties)
 
         return HTTPStatus.OK
-    
+
     async def on_event(self, service, properties):
-        """Parse the received data. This method can be overridden by the user"""
+        """Parse the received data. This method can be overridden by the user."""
         _LOGGER.info("Please override the on_event method to handle the received data.")
 
     def get_device_info(self):
-        """Retrieve information from the TV"""
+        """Retrieve information from the TV."""
         url = URL_TEMPLATE.format(self._host, self._port,  URL_CONTROL_NRC_DDD)
-            
+
         res = urlopen(url, timeout=5).read()
         device_info = xmltodict.parse(res)['root']['device']
 
         return device_info
-    
+
     def open_webpage(self, url):
-        """Launch Web Browser and open url"""
+        """Launch Web Browser and open url."""
+        resource_id = 1063
         params = ('<X_AppType>vc_app</X_AppType>'
-                 '<X_LaunchKeyword>resource_id={resource_id}</X_LaunchKeyword>'
-                 ).format(resource_id=1063)
+                 f'<X_LaunchKeyword>resource_id={resource_id}</X_LaunchKeyword>')
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_LaunchApp', params, body_elem="s")
-        root = etree.fromstring(res)
-        el_sessionId = root.find('.//X_SessionId')
+        root = ElementTree.fromstring(res)
+        el_session_id = root.find('.//X_SessionId')
 
         #setup a server socket where URL will be served
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        localip = self._get_local_ip() 
+        localip = self._get_local_ip()
         localport = random.randint(1025,65535)
         server_socket.bind((localip, localport))
         server_socket.listen(1)
-        _LOGGER.debug("Listening on {}:{}".format(localip,localport))
- 
-        params = ('<X_AppType>vc_app</X_AppType>'
-                 '<X_SessionId>{sessionId}</X_SessionId>'
-                 '<X_ConnectKeyword>panasonic-viera 0.2</X_ConnectKeyword>'
-                 '<X_ConnectAddr>{localip}:{localport}</X_ConnectAddr>'
-                 ).format(sessionId=el_sessionId.text, localip=localip, localport=localport)
+        _LOGGER.debug("Listening on %s:%d", localip, localport)
 
-        self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
-                                'X_ConnectApp', params, body_elem="s")
+        params = ('<X_AppType>vc_app</X_AppType>'
+                 f'<X_SessionId>{el_session_id.text}</X_SessionId>'
+                 '<X_ConnectKeyword>panasonic-viera 0.2</X_ConnectKeyword>'
+                 f'<X_ConnectAddr>{localip}:{localport}</X_ConnectAddr>'
+                 )
+
+        self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL, 'X_ConnectApp', params,
+                            body_elem="s")
 
         sockfd, addr = server_socket.accept()
         _LOGGER.debug("Client (%s, %s) connected" % addr)
@@ -653,12 +676,12 @@ class RemoteControl:
         sockfd.close()
 
         server_socket.close()
-    
+
     def get_apps(self):
-        """Return the list of apps on the TV"""
+        """Return the list of apps on the TV."""
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_GetAppList', None)
-        
+
         apps = res.split("vc_app")[1:]
         app_list = {}
         for app in apps:
@@ -666,12 +689,12 @@ class RemoteControl:
             name = re.search('(?<='+prod_id+'&apos;)(.*?)(?=&apos;)', app).group(0)
             app_list[name] = prod_id
         return app_list
-    
+
     def get_vector_info(self):
-        """Return the vector info on the TV"""
+        """Return the vector info on the TV."""
         res = self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                                 'X_GetVectorInfo', None)
-        
+
         return res
 
     def get_volume(self):
@@ -679,7 +702,7 @@ class RemoteControl:
         params = '<InstanceID>0</InstanceID><Channel>Master</Channel>'
         res = self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                                 'GetVolume', params)
-        root = etree.fromstring(res)
+        root = ElementTree.fromstring(res)
         el_volume = root.find('.//CurrentVolume')
         return int(el_volume.text)
 
@@ -689,7 +712,7 @@ class RemoteControl:
             raise Exception('Bad request to volume control. '
                             'Must be between 0 and 100')
         params = ('<InstanceID>0</InstanceID><Channel>Master</Channel>'
-                  '<DesiredVolume>{}</DesiredVolume>').format(volume)
+                  f'<DesiredVolume>{volume}</DesiredVolume>')
         self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                           'SetVolume', params)
 
@@ -698,7 +721,7 @@ class RemoteControl:
         params = '<InstanceID>0</InstanceID><Channel>Master</Channel>'
         res = self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                                 'GetMute', params)
-        root = etree.fromstring(res)
+        root = ElementTree.fromstring(res)
         el_mute = root.find('.//CurrentMute')
         return el_mute.text != '0'
 
@@ -706,7 +729,7 @@ class RemoteControl:
         """Mute or unmute the TV."""
         data = '1' if enable else '0'
         params = ('<InstanceID>0</InstanceID><Channel>Master</Channel>'
-                  '<DesiredMute>{}</DesiredMute>').format(data)
+                  f'<DesiredMute>{data}</DesiredMute>')
         self.soap_request(URL_CONTROL_DMR, URN_RENDERING_CONTROL,
                           'SetMute', params)
 
@@ -714,68 +737,68 @@ class RemoteControl:
         """Send a key command to the TV."""
         if isinstance(key, Keys):
             key = key.value
-        params = '<X_KeyEvent>{}</X_KeyEvent>'.format(key)
+        params = f'<X_KeyEvent>{key}</X_KeyEvent>'
         self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                           'X_SendKey', params)
-    
+
     def launch_app(self, app):
         """Launch an app."""
         if isinstance(app, Apps):
             app = app.value
         params = '<X_AppType>vc_app</X_AppType><X_LaunchKeyword>'
         if len(app) != 16:
-            params = params + 'resource_id={}</X_LaunchKeyword>'.format(app)
+            params = params + f'resource_id={app}</X_LaunchKeyword>'
         else:
-            params = params + 'product_id={}</X_LaunchKeyword>'.format(app)
+            params = params + f'product_id={app}</X_LaunchKeyword>'
         self.soap_request(URL_CONTROL_NRC, URN_REMOTE_CONTROL,
                           'X_LaunchApp', params)
 
     def turn_off(self):
         """Turn off media player."""
-        self.send_key(Keys.power)
+        self.send_key(Keys.POWER)
 
     def turn_on(self):
         """Turn on media player."""
-        self.send_key(Keys.power)
+        self.send_key(Keys.POWER)
 
     def volume_up(self):
         """Volume up the media player."""
-        self.send_key(Keys.volume_up)
+        self.send_key(Keys.VOLUME_UP)
 
     def volume_down(self):
         """Volume down media player."""
-        self.send_key(Keys.volume_down)
+        self.send_key(Keys.VOLUME_DOWN)
 
     def mute_volume(self):
         """Send mute command."""
-        self.send_key(Keys.mute)
+        self.send_key(Keys.MUTE)
 
     def media_play(self):
         """Send play command."""
-        self.send_key(Keys.play)
+        self.send_key(Keys.PLAY)
 
     def media_pause(self):
         """Send media pause command to media player."""
-        self.send_key(Keys.pause)
+        self.send_key(Keys.PAUSE)
 
     def media_next_track(self):
         """Send next track command."""
-        self.send_key(Keys.fast_forward)
+        self.send_key(Keys.FAST_FORWARD)
 
     def media_previous_track(self):
         """Send the previous track command."""
-        self.send_key(Keys.rewind)
+        self.send_key(Keys.REWIND)
 
     @property
     def type(self):
         """Return TV type."""
         return self._type
-    
+
     @property
     def app_id(self):
         """Return application ID."""
         return self._app_id
-    
+
     @property
     def enc_key(self):
         """Return encryption key."""

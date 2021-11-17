@@ -15,25 +15,26 @@ MSG_TV_SWITCHED_OFF = 'TV is switched off.'
 
 
 class CommandRunner(object):
-    "Runs defined commands."
+    """Runs defined commands."""
+
     def __init__(self):
         self.commands = {}
         self.command('help', self.help)
 
     def help(self):
         print('Commands:')
-        for c in self.commands:
-            print('{}'.format(c))
+        for cmd in self.commands:
+            print(f'{cmd}')
         print('')
 
-    def command(self, name, fn):
-        self.commands[name] = fn
+    def command(self, name, command_function):
+        self.commands[name] = command_function
 
     def run(self, line):
         tokens = shlex.split(line, comments=True)
         command, args = tokens[0], tokens[1:]
         if command not in self.commands:
-            print('{}: no such command'.format(command), file=stderr)
+            print(f'{command}: no such command', file=stderr)
             return
         result = self.commands[command](*args)
         if result is not None:
@@ -41,14 +42,15 @@ class CommandRunner(object):
 
 
 class Console(object):
+    """The console class."""
     ps1 = '> '
     ps2 = '. '
 
     def __init__(self, runner):
         self.runner = runner
 
-    def run(self, fd):
-        for line in fd:
+    def run(self, file_descriptor):
+        for line in file_descriptor:
             self.runner.run(line)
 
     def interact(self, locals=None):
@@ -58,7 +60,7 @@ class Console(object):
                     self.runner.run(source)
                 except SystemExit:
                     raise
-                except:
+                except Exception:
                     code_console.showtraceback()
                 return False
 
@@ -74,14 +76,14 @@ class Console(object):
         finally:
             sys.ps1, sys.ps2 = ps1, ps2
 
-    def run(self, fd=None):
-        if fd is None:
-            fd = sys.stdin
-        if fd.isatty():
+    def run(self, file_descriptor=None):
+        if file_descriptor is None:
+            file_descriptor = sys.stdin
+        if file_descriptor.isatty():
             self.interact()
         else:
             try:
-                self.run(fd=fd)
+                self.run(file_descriptor=file_descriptor)
             except Exception as err:
                 print(err, file=stderr)
                 return 1
@@ -103,14 +105,14 @@ class RemoteControl(object):
     def get_volume(self):
         try:
             vol = self._remote_control.get_volume()
-            print('Volume is currently set to {}'.format(vol))
+            print(f'Volume is currently set to {vol}')
         except (socket.timeout, TimeoutError, OSError):
             print(MSG_TV_SWITCHED_OFF)
 
     def set_volume(self, vol):
         try:
             self._remote_control.set_volume(vol)
-            print('Successfully set volume to {}'.format(vol))
+            print(f'Successfully set volume to {vol}')
         except (socket.timeout, TimeoutError, OSError):
             print(MSG_TV_SWITCHED_OFF)
 
@@ -128,7 +130,7 @@ class RemoteControl(object):
         try:
             mute = bool(mute)
             self._remote_control.set_mute(mute)
-            print('Successfully set mute to {}'.format(mute))
+            print(f'Successfully set mute to {mute}')
         except (socket.timeout, TimeoutError, OSError):
             print(MSG_TV_SWITCHED_OFF)
 
@@ -171,7 +173,7 @@ class RemoteControl(object):
         try:
             key = str(key)
             self._remote_control.send_key(key)
-            print('Successfully sent key {}.'.format(key))
+            print(f'Successfully sent key {key}.')
         except (socket.timeout, TimeoutError, OSError):
             print(MSG_TV_SWITCHED_OFF)
 
@@ -183,7 +185,8 @@ def main():
                     help='Address of the Panasonic Viera TV')
     parser.add_argument('port', metavar='port', type=int, nargs='?',
                     default=panasonic_viera.DEFAULT_PORT,
-                    help='Port of the Panasonic Viera TV. Defaults to {}.'.format(panasonic_viera.DEFAULT_PORT))
+                    help=('Port of the Panasonic Viera TV. '
+                            f'Defaults to {panasonic_viera.DEFAULT_PORT}.'))
     parser.add_argument('--verbose', dest='verbose', action='store_const',
                     const=True, default=False,
                     help='debug output')
