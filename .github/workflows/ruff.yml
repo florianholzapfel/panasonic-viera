@@ -1,4 +1,4 @@
-name: Pylint
+name: ruff
 
 on: [push]
 
@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.12"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -17,8 +17,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        pip install ruff
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint ./panasonic_viera/__init__.py ./panasonic_viera/__main__.py
+        ruff check .

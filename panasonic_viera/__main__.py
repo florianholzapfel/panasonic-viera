@@ -65,7 +65,8 @@ class Console(object):
                 return False
 
         try:
-            import readline; readline
+            import readline
+            readline
         except ImportError:
             pass
 
@@ -76,7 +77,7 @@ class Console(object):
         finally:
             sys.ps1, sys.ps2 = ps1, ps2
 
-    def run(self, file_descriptor=None):
+    def run(self, file_descriptor=None):  # noqa: F811
         if file_descriptor is None:
             file_descriptor = sys.stdin
         if file_descriptor.isatty():

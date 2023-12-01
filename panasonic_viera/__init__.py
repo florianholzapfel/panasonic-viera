@@ -38,7 +38,8 @@ TV_TYPE_ENCRYPTED = 1
 DEFAULT_PORT = 55000
 
 BLOCK_SIZE = 16  # Bytes
-pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(0)
+def pad(s):
+    return s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(0)
 
 class Keys(Enum):
     """Contains all known keys."""
