@@ -2,7 +2,7 @@
 name = "panasonic-viera"
 description = "Library to control Panasonic Viera TVs"
 license = "MIT"
-version = "0.4.2"
+version = "0.4.4"
 readme = "README.md"
 authors = [{ name = "Florian Holzapfel", email = "flo.holzapfel@gmail.com" }]
 requires-python = '>=3.9,<4.0'
