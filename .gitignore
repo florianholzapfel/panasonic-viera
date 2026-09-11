@@ -61,5 +61,6 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 /venv/
+.venv/
 .vscode/settings.json
 .idea/
