@@ -43,6 +43,19 @@ class PacControlTests(unittest.TestCase):
         with self.assertRaises(SOAPError):
             self.remote._pac_value("QPW:1", "QMI")
 
+    def test_extracts_pac_result_without_expanding_entities(self):
+        response = """\
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+          <s:Body>
+            <u:X_SendInquiryCmdResponse xmlns:u="urn:panasonic-com:service:p00NetworkControl:1">
+              <X_InquiryCmdResult>QMI:H1</X_InquiryCmdResult>
+            </u:X_SendInquiryCmdResponse>
+          </s:Body>
+        </s:Envelope>
+        """
+
+        self.assertEqual(self.remote._pac_result(response, "X_InquiryCmdResult"), "QMI:H1")
+
 
 if __name__ == "__main__":
     unittest.main()

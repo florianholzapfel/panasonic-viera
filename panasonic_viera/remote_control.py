@@ -714,12 +714,17 @@ class RemoteControl:
     @staticmethod
     def _pac_result(response, element_name):
         """Extract a PAC result from a SOAP response."""
-        root = ElementTree.fromstring(response)
-        for element in root.iter():
-            if element.tag.rsplit("}", 1)[-1] == element_name:
-                if element.text:
-                    return element.text
-                break
+        root = xmltodict.parse(response, disable_entities=True)
+        candidates = [root]
+        while candidates:
+            candidate = candidates.pop()
+            if isinstance(candidate, dict):
+                for key, value in candidate.items():
+                    if key.rsplit(":", 1)[-1] == element_name and value:
+                        return value
+                    candidates.append(value)
+            elif isinstance(candidate, list):
+                candidates.extend(candidate)
         raise SOAPError(f"PAC response does not contain {element_name}")
 
     def _pac_inquiry(self, command):
