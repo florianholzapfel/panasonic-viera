@@ -177,7 +177,7 @@ class RemoteControl:
         try:
             res = urlopen(req, timeout=5).read()
         except HTTPError as ex:
-            if self._session_seq_num is not None:
+            if is_encrypted:
                 self._session_seq_num -= 1
             raise ex  # Pass to the next handler
         _LOGGER.debug("Response: %s", res)
