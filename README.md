@@ -61,6 +61,21 @@ rc = panasonic_viera.RemoteControl("<HOST>")
 rc.send_key(panasonic_viera.Keys.epg)
 ```
 
+##### Select an input or picture mode
+
+```python
+rc = panasonic_viera.RemoteControl("<HOST>")
+print(rc.list_inputs())
+rc.set_input("HDMI2")
+
+print(rc.list_picture_modes())
+rc.set_picture_mode("Cinema")
+```
+
+The PAC controls are optional: older or consumer Panasonic models may not
+publish them. Both setters wait for the television to report the requested
+state before returning.
+
 ### Command Line
 
 This command line starts a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) to the TV. Therefore it is mainly used testing purposes and not for automating the TV.

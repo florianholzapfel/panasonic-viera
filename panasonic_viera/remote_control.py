@@ -1,40 +1,44 @@
 """RemoteControl class for Panasonic Viera TV control."""
+import asyncio
+import base64
+import hashlib
+import hmac
 import logging
 import random
-import socket
-import base64
-import struct
-import hmac
-import hashlib
-from http import HTTPStatus
 import re
-import asyncio
+import socket
+import struct
+import time
+from http import HTTPStatus
 from xml.etree import ElementTree
+
 import aiohttp.web
 import xmltodict
 from Crypto.Cipher import AES
 
 try:
-    from urllib.request import urlopen, Request, HTTPError, build_opener, HTTPHandler
+    from urllib.request import HTTPError, HTTPHandler, Request, build_opener, urlopen
 except ImportError:
-    from urllib2 import urlopen, Request, HTTPError, build_opener, HTTPHandler
+    from urllib2 import HTTPError, HTTPHandler, Request, build_opener, urlopen
 
+from .apps import Apps
 from .constants import (
-    URN_RENDERING_CONTROL,
-    URN_REMOTE_CONTROL,
-    URL_TEMPLATE,
-    URL_CONTROL_NRC_DDD,
-    URL_CONTROL_NRC_DEF,
+    DEFAULT_PORT,
+    TV_TYPE_ENCRYPTED,
+    TV_TYPE_NONENCRYPTED,
     URL_CONTROL_DMR,
     URL_CONTROL_NRC,
-    TV_TYPE_NONENCRYPTED,
-    TV_TYPE_ENCRYPTED,
-    DEFAULT_PORT,
+    URL_CONTROL_NRC_DDD,
+    URL_CONTROL_NRC_DEF,
+    URL_CONTROL_PAC,
+    URL_TEMPLATE,
+    URN_PRO_AV_CONTROL,
+    URN_REMOTE_CONTROL,
+    URN_RENDERING_CONTROL,
     pad,
 )
-from .exceptions import SOAPError, EncryptionRequired
+from .exceptions import EncryptionRequired, SOAPError
 from .keys import Keys
-from .apps import Apps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -706,6 +710,128 @@ class RemoteControl:
         root = ElementTree.fromstring(res)
         el_mute = root.find(".//CurrentMute")
         return el_mute.text != "0"
+
+    @staticmethod
+    def _pac_result(response, element_name):
+        """Extract a PAC result from a SOAP response."""
+        root = xmltodict.parse(response, disable_entities=True)
+        candidates = [root]
+        while candidates:
+            candidate = candidates.pop()
+            if isinstance(candidate, dict):
+                for key, value in candidate.items():
+                    if key.rsplit(":", 1)[-1] == element_name and value:
+                        return value
+                    candidates.append(value)
+            elif isinstance(candidate, list):
+                candidates.extend(candidate)
+        raise SOAPError(f"PAC response does not contain {element_name}")
+
+    def _pac_inquiry(self, command):
+        """Run a private PAC inquiry command."""
+        response = self.soap_request(
+            URL_CONTROL_PAC,
+            URN_PRO_AV_CONTROL,
+            "X_SendInquiryCmd",
+            f"<X_InquiryCmdType>PAC_{command}</X_InquiryCmdType>",
+        )
+        return self._pac_result(response, "X_InquiryCmdResult")
+
+    def _pac_control(self, command):
+        """Run a private PAC control command."""
+        self.soap_request(
+            URL_CONTROL_PAC,
+            URN_PRO_AV_CONTROL,
+            "X_SendCtrlCmd",
+            f"<X_CtrlCmd>PAC_{command}</X_CtrlCmd>",
+        )
+
+    @staticmethod
+    def _pac_value(response, command):
+        """Return the value part of a PAC ``COMMAND:value`` response."""
+        prefix = f"{command}:"
+        if not response.startswith(prefix):
+            raise SOAPError(f"Unexpected PAC response for {command}: {response!r}")
+        return response[len(prefix) :]
+
+    @staticmethod
+    def _wait_for(getter, expected, timeout=5):
+        """Wait for a PAC state to converge after an acknowledged command."""
+        deadline = time.monotonic() + timeout
+        actual = getter()
+        while actual != expected and time.monotonic() < deadline:
+            time.sleep(0.2)
+            actual = getter()
+        if actual != expected:
+            raise SOAPError(f"PAC state did not converge to {expected!r}; got {actual!r}")
+        return actual
+
+    def list_inputs(self):
+        """Return the input names reported by the TV's PAC service."""
+        entries = self._pac_value(self._pac_inquiry("QIL"), "QIL").split(",")
+        inputs = []
+        for entry in entries:
+            match = re.fullmatch(r"[^\[]+\[([^\]]+)\]", entry)
+            if match:
+                inputs.append(match.group(1))
+        if not inputs:
+            raise SOAPError("PAC QIL did not contain any input")
+        return inputs
+
+    def get_input(self):
+        """Return the current input name reported by PAC."""
+        code = self._pac_value(self._pac_inquiry("QMI"), "QMI")
+        for entry in self._pac_value(self._pac_inquiry("QIL"), "QIL").split(","):
+            match = re.fullmatch(r"([^\[]+)\[([^\]]+)\]", entry)
+            if match and match.group(1) == code:
+                return match.group(2)
+        return code
+
+    def set_input(self, input_name, timeout=5):
+        """Select a PAC input and wait until the TV reports it as current."""
+        requested = input_name.casefold()
+        for entry in self._pac_value(self._pac_inquiry("QIL"), "QIL").split(","):
+            match = re.fullmatch(r"([^\[]+)\[([^\]]+)\]", entry)
+            if match and match.group(2).casefold() == requested:
+                self._pac_control(f"IMS:{match.group(1)}")
+                return self._wait_for(self.get_input, match.group(2), timeout)
+        raise ValueError(f"Unknown Panasonic input: {input_name!r}")
+
+    def list_picture_modes(self):
+        """Return the picture modes supported by this Panasonic PAC implementation."""
+        # QPL is inconsistent on some Panasonic models (GX800 omits GAME), while
+        # all of these named values are accepted by the corresponding PAC command.
+        return ["Dynamic", "Normal", "True Cinema", "Cinema", "Game", "Custom"]
+
+    def get_picture_mode(self):
+        """Return the current PAC picture mode."""
+        code = self._pac_value(self._pac_inquiry("QPC"), "QPC")
+        modes = {
+            "VVT": "Dynamic",
+            "STD": "Normal",
+            "HTR": "True Cinema",
+            "CNM": "Cinema",
+            "GAM": "Game",
+            "CST": "Custom",
+        }
+        return modes.get(code, code)
+
+    def set_picture_mode(self, picture_mode, timeout=5):
+        """Select a PAC picture mode and wait until the TV reports it."""
+        modes = {
+            "dynamic": ("VVT", "Dynamic"),
+            "normal": ("STD", "Normal"),
+            "true cinema": ("HTR", "True Cinema"),
+            "cinema": ("CNM", "Cinema"),
+            "game": ("GAM", "Game"),
+            "custom": ("CST", "Custom"),
+        }
+        try:
+            code, expected = modes[picture_mode.casefold()]
+        except (AttributeError, KeyError) as err:
+            raise ValueError(f"Unknown Panasonic picture mode: {picture_mode!r}") from err
+        self._pac_control(f"VPC:{code}")
+        return self._wait_for(self.get_picture_mode, expected, timeout)
 
     def set_mute(self, enable):
         """Mute or unmute the TV."""

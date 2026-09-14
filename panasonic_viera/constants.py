@@ -2,6 +2,7 @@
 
 URN_RENDERING_CONTROL = "schemas-upnp-org:service:RenderingControl:1"
 URN_REMOTE_CONTROL = "panasonic-com:service:p00NetworkControl:1"
+URN_PRO_AV_CONTROL = "panasonic-com:service:p00ProAVControlService:1"
 
 URL_TEMPLATE = "http://{}:{}/{}"
 
@@ -10,6 +11,7 @@ URL_CONTROL_NRC_DEF = "nrc/sdd_0.xml"
 
 URL_CONTROL_DMR = "dmr/control_0"
 URL_CONTROL_NRC = "nrc/control_0"
+URL_CONTROL_PAC = "pac/control_0"
 
 TV_TYPE_NONENCRYPTED = 0
 TV_TYPE_ENCRYPTED = 1
