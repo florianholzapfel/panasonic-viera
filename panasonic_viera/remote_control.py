@@ -614,6 +614,21 @@ class RemoteControl:
 
         return device_info
 
+    @staticmethod
+    def _build_webpage_packet(url):
+        """Build the packet sent to the TV's browser app to open a URL.
+
+        The header is F4 01 01 00 followed by the URL length as a 32-bit
+        big-endian integer, then the UTF-8 encoded URL and a NUL terminator.
+        """
+        url_bytes = url.encode("utf-8")
+        return (
+            bytes([0xF4, 0x01, 0x01, 0x00])
+            + struct.pack(">I", len(url_bytes))
+            + url_bytes
+            + b"\x00"
+        )
+
     def open_webpage(self, url):
         """Launch Web Browser and open url."""
         resource_id = 1063
@@ -649,10 +664,7 @@ class RemoteControl:
 
         sockfd, addr = server_socket.accept()
         _LOGGER.debug("Client (%s, %s) connected" % addr)
-        packet = bytearray([0xF4, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, len(url)])
-        packet.extend(map(ord, url))
-        packet.append(0x00)
-        sockfd.send(packet)
+        sockfd.sendall(self._build_webpage_packet(url))
         sockfd.close()
 
         server_socket.close()
